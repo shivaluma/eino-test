@@ -19,6 +19,6 @@ WORKDIR /root/
 
 COPY --from=builder /app/server .
 
-EXPOSE 8080
+EXPOSE 8888
 
 CMD ["./server"]
