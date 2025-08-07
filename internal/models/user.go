@@ -16,9 +16,13 @@ type User struct {
 }
 
 type UserRegisterRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
+	Name     string `json:"name" validate:"required,min=1,max=100"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
+}
+
+type CheckEmailRequest struct {
+	Email string `json:"email" validate:"required,email"`
 }
 
 type UserLoginRequest struct {
@@ -44,8 +48,9 @@ type RefreshToken struct {
 }
 
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token,omitempty"`
+	AccessToken  string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token,omitempty"`
+	User         *UserResponse `json:"user,omitempty"`
 }
 
 type RefreshTokenRequest struct {

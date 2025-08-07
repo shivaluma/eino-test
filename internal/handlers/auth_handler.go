@@ -23,6 +23,34 @@ func NewAuthHandler(userRepo *repository.UserRepository, authSvc *auth.Service) 
 	}
 }
 
+func (h *AuthHandler) CheckEmail(c echo.Context) error {
+	var req models.CheckEmailRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid request body",
+		})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+	}
+
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+
+	existingUser, err := h.userRepo.GetByEmail(c.Request().Context(), req.Email)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Internal server error",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]bool{
+		"exists": existingUser != nil,
+	})
+}
+
 func (h *AuthHandler) Register(c echo.Context) error {
 	var req models.UserRegisterRequest
 	if err := c.Bind(&req); err != nil {
@@ -38,7 +66,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	req.Username = strings.TrimSpace(req.Username)
+	req.Name = strings.TrimSpace(req.Name)
 
 	existingUser, err := h.userRepo.GetByEmail(c.Request().Context(), req.Email)
 	if err != nil {
@@ -52,18 +80,6 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		})
 	}
 
-	existingUser, err = h.userRepo.GetByUsername(c.Request().Context(), req.Username)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Internal server error",
-		})
-	}
-	if existingUser != nil {
-		return c.JSON(http.StatusConflict, map[string]string{
-			"error": "Username already exists",
-		})
-	}
-
 	hashedPassword, err := h.authSvc.HashPassword(req.Password)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -72,7 +88,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	user := &models.User{
-		Username:     req.Username,
+		Username:     req.Name,
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 	}
@@ -146,6 +162,13 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	return c.JSON(http.StatusOK, models.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		User: &models.UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		},
 	})
 }
 

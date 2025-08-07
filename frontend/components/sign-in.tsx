@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +15,9 @@ import {
 import { useObjectState } from "@/hooks/use-object-state";
 
 import { Loader } from "lucide-react";
-import { safe } from "ts-safe";
 
-import { authClient } from "@/lib/auth/client";
+import { useLoginMutation } from "@/lib/mutations/auth";
 
-import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/github-icon";
 import { GoogleIcon } from "@/components/icons/google-icon";
 import { useTranslations } from "next-intl";
@@ -37,7 +34,7 @@ export default function SignIn({
 }) {
   const t = useTranslations("Auth.SignIn");
 
-  const [loading, setLoading] = useState(false);
+  const loginMutation = useLoginMutation();
 
   const [formData, setFormData] = useObjectState({
     email: "",
@@ -45,29 +42,15 @@ export default function SignIn({
   });
 
   const emailAndPasswordSignIn = () => {
-    setLoading(true);
-    safe(() =>
-      authClient.signIn.email(
-        {
-          email: formData.email,
-          password: formData.password,
-          callbackURL: "/",
-        },
-        {
-          onError(ctx) {
-            toast.error(ctx.error.message || ctx.error.statusText);
-          },
-        },
-      ),
-    )
-      .watch(() => setLoading(false))
-      .unwrap();
+    loginMutation.mutate({
+      email: formData.email,
+      password: formData.password,
+    });
   };
 
   const handleSocialSignIn = (provider: SocialAuthenticationProvider) => {
-    authClient.signIn.social({ provider }).catch((e) => {
-      toast.error(e.error);
-    });
+    // Social sign-in not implemented in the Go backend yet
+    console.log("Social sign-in not yet implemented:", provider);
   };
   return (
     <div className="w-full h-full flex flex-col p-4 md:p-8 justify-center">
@@ -88,7 +71,7 @@ export default function SignIn({
                 <Input
                   id="email"
                   autoFocus
-                  disabled={loading}
+                  disabled={loginMutation.isPending}
                   value={formData.email}
                   onChange={(e) => setFormData({ email: e.target.value })}
                   type="email"
@@ -102,7 +85,7 @@ export default function SignIn({
                 </div>
                 <Input
                   id="password"
-                  disabled={loading}
+                  disabled={loginMutation.isPending}
                   value={formData.password}
                   placeholder="********"
                   onKeyDown={(e) => {
@@ -118,9 +101,9 @@ export default function SignIn({
               <Button
                 className="w-full"
                 onClick={emailAndPasswordSignIn}
-                disabled={loading}
+                disabled={loginMutation.isPending}
               >
-                {loading ? (
+                {loginMutation.isPending ? (
                   <Loader className="size-4 animate-spin ml-1" />
                 ) : (
                   t("signIn")

@@ -77,6 +77,7 @@ func main() {
 
 	api := e.Group("/api/v1")
 
+	api.POST("/check-email", authHandler.CheckEmail)
 	api.POST("/register", authHandler.Register)
 	api.POST("/login", authHandler.Login)
 	api.POST("/token/refresh", authHandler.RefreshToken)

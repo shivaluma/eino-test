@@ -16,18 +16,15 @@ import { useObjectState } from "@/hooks/use-object-state";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, Loader } from "lucide-react";
 import { toast } from "sonner";
-import { safe } from "ts-safe";
-import { UserZodSchema } from "@/types/user";
-import { existsByEmailAction } from "@/app/api/auth/actions";
-import { authClient } from "@/lib/auth/client";
-import { useRouter } from "next/navigation";
+import { useCheckEmailMutation, useRegisterMutation } from "@/lib/mutations/auth";
 import { useTranslations } from "next-intl";
 
 export default function SignUpPage() {
   const t = useTranslations();
   const [step, setStep] = useState(1);
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const checkEmailMutation = useCheckEmailMutation();
+  const registerMutation = useRegisterMutation();
+  
   const [formData, setFormData] = useObjectState({
     email: "",
     name: "",
@@ -40,34 +37,32 @@ export default function SignUpPage() {
     t("Auth.SignUp.step3"),
   ];
 
-  const safeProcessWithLoading = function <T>(fn: () => Promise<T>) {
-    setIsLoading(true);
-    return safe(() => fn()).watch(() => setIsLoading(false));
-  };
-
   const backStep = () => {
     setStep(Math.max(step - 1, 1));
   };
 
   const successEmailStep = async () => {
-    const { success } = UserZodSchema.shape.email.safeParse(formData.email);
-    if (!success) {
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
       toast.error(t("Auth.SignUp.invalidEmail"));
       return;
     }
-    const exists = await safeProcessWithLoading(() =>
-      existsByEmailAction(formData.email),
-    ).orElse(false);
-    if (exists) {
-      toast.error(t("Auth.SignUp.emailAlreadyExists"));
-      return;
+    
+    try {
+      const result = await checkEmailMutation.mutateAsync({ email: formData.email });
+      if (result.exists) {
+        toast.error(t("Auth.SignUp.emailAlreadyExists"));
+        return;
+      }
+      setStep(2);
+    } catch (error) {
+      toast.error("Failed to check email availability");
     }
-    setStep(2);
   };
 
   const successNameStep = () => {
-    const { success } = UserZodSchema.shape.name.safeParse(formData.name);
-    if (!success) {
+    if (!formData.name || formData.name.trim().length === 0) {
       toast.error(t("Auth.SignUp.nameRequired"));
       return;
     }
@@ -75,31 +70,19 @@ export default function SignUpPage() {
   };
 
   const successPasswordStep = async () => {
-    const { success } = UserZodSchema.shape.password.safeParse(
-      formData.password,
-    );
-    if (!success) {
+    if (!formData.password || formData.password.length < 8) {
       toast.error(t("Auth.SignUp.passwordRequired"));
       return;
     }
-    await safeProcessWithLoading(() =>
-      authClient.signUp.email(
-        {
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-        },
-        {
-          onError(ctx) {
-            toast.error(ctx.error.message || ctx.error.statusText);
-          },
-          onSuccess() {
-            router.push("/");
-          },
-        },
-      ),
-    ).unwrap();
+    
+    await registerMutation.mutateAsync({
+      email: formData.email,
+      name: formData.name,
+      password: formData.password,
+    });
   };
+
+  const isLoading = checkEmailMutation.isPending || registerMutation.isPending;
 
   return (
     <div className="animate-in fade-in duration-1000 w-full h-full flex flex-col p-4 md:p-8 justify-center relative">
@@ -160,7 +143,7 @@ export default function SignUpPage() {
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Cgoing"
+                  placeholder="John Doe"
                   disabled={isLoading}
                   autoFocus
                   value={formData.name}
@@ -225,7 +208,7 @@ export default function SignUpPage() {
                 }}
               >
                 {step === 3 ? t("Auth.SignUp.createAccount") : t("Common.next")}
-                {isLoading && <Loader className="size-4 ml-2" />}
+                {isLoading && <Loader className="size-4 ml-2 animate-spin" />}
               </Button>
             </div>
           </div>
