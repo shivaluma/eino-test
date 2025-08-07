@@ -45,18 +45,18 @@ export interface RefreshTokenResponse {
 
 export const authApi = {
   checkEmail: async (data: CheckEmailRequest) => {
-    return apiClient.post<CheckEmailResponse>('/v1/check-email', data);
+    return apiClient.post<CheckEmailResponse>('/api/v1/check-email', data);
   },
 
   login: async (data: LoginRequest) => {
-    return apiClient.post<LoginResponse>('/v1/login', data);
+    return apiClient.post<LoginResponse>('/api/v1/login', data);
   },
 
   register: async (data: RegisterRequest) => {
-    return apiClient.post<{ message: string }>('/v1/register', data);
+    return apiClient.post<{ message: string }>('/api/v1/register', data);
   },
 
   refreshToken: async (data: RefreshTokenRequest) => {
-    return apiClient.post<RefreshTokenResponse>('/v1/token/refresh', data);
+    return apiClient.post<RefreshTokenResponse>('/api/v1/token/refresh', data);
   },
 };
