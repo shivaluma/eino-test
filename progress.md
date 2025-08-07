@@ -29,9 +29,11 @@ This document tracks the implementation progress of the AI Food Agent applicatio
   - `POST /api/v1/token/refresh` - Token refresh
 - ✅ **Conversation Endpoints**:
   - `GET /api/v1/conversations` - List user conversations
-  - `POST /api/v1/conversations` - Create new conversation
+  - `POST /api/v1/conversations` - Create new conversation (deprecated)
   - `GET /api/v1/conversations/:id` - Get specific conversation
   - `GET /api/v1/conversations/:id/messages` - Get conversation messages
+- ✅ **Message Endpoints**:
+  - `POST /api/v1/messages` - Send message (creates new or appends to existing conversation)
 
 ### 5. Security Features
 - ✅ Password hashing with bcrypt
@@ -47,6 +49,14 @@ This document tracks the implementation progress of the AI Food Agent applicatio
 - ✅ **Docker Compose**: Complete development environment with PostgreSQL
 - ✅ **Health Checks**: Database health monitoring endpoint
 
+### 7. AI Integration (Phase 2 - Completed)
+- ✅ **Eino Framework Integration**: Integrated Eino AI framework with OpenAI
+- ✅ **Message Templates**: Flexible chat templates with role and style placeholders
+- ✅ **Chat History Context**: Maintains conversation context across messages
+- ✅ **Title Generation**: Auto-generates conversation titles from first message
+- ✅ **HTTP Chunked Streaming**: Real-time streaming responses using Server-Sent Events
+- ✅ **Dual Response Modes**: Support for both streaming and non-streaming responses
+
 ## 📁 Project Structure
 
 ```
@@ -56,27 +66,33 @@ eino-test/
 ├── config/                     # Configuration management
 │   └── config.go
 ├── internal/                   # Internal application code
-│   ├── auth/                   # Authentication service
+│   ├── aiagent/               # AI agent integration
+│   │   ├── openai.go          # OpenAI model configuration
+│   │   └── template.go        # Message templates
+│   ├── auth/                  # Authentication service
 │   │   └── auth.go
-│   ├── database/               # Database connection
+│   ├── database/              # Database connection
 │   │   └── database.go
-│   ├── handlers/               # HTTP handlers
+│   ├── handlers/              # HTTP handlers
 │   │   ├── auth_handler.go
 │   │   └── conversation_handler.go
-│   ├── middleware/             # HTTP middleware
-│   │   └── auth.go
-│   ├── models/                 # Data models
+│   ├── middleware/            # HTTP middleware
+│   │   ├── auth.go
+│   │   └── cors.go
+│   ├── models/                # Data models
 │   │   ├── user.go
 │   │   └── conversation.go
-│   └── repository/             # Data access layer
+│   └── repository/            # Data access layer
 │       ├── user_repository.go
 │       └── conversation_repository.go
-├── migrations/                 # Database migrations
+├── migrations/                # Database migrations
 │   └── 001_initial_schema.sql
-├── docker-compose.yml          # Development environment
-├── Dockerfile                  # Production container
-├── .env.example               # Environment template
-└── go.mod                     # Go dependencies
+├── docker-compose.yml         # Development environment
+├── Dockerfile                 # Production container
+├── .env.example              # Environment template
+├── test_api.sh               # API testing script
+├── CLAUDE.md                 # AI assistant instructions
+└── go.mod                    # Go dependencies
 ```
 
 ## 🛠 Technology Stack
@@ -87,6 +103,8 @@ eino-test/
 - **Password Hashing**: bcrypt
 - **Validation**: go-playground/validator
 - **Database Driver**: pgx/v5 with connection pooling
+- **AI Framework**: Eino with OpenAI integration
+- **Streaming**: HTTP chunked transfer with Server-Sent Events
 - **Containerization**: Docker & Docker Compose
 
 ## 🚀 Quick Start
@@ -124,37 +142,51 @@ eino-test/
    ```bash
    curl -X POST http://localhost:8080/api/v1/register \
      -H "Content-Type: application/json" \
-     -d '{"username":"testuser","email":"test@example.com","password":"password123"}'
+     -d '{"email":"test@example.com","password":"Password123!","name":"Test User"}'
    ```
 
 2. **Login**:
    ```bash
    curl -X POST http://localhost:8080/api/v1/login \
      -H "Content-Type: application/json" \
-     -d '{"email":"test@example.com","password":"password123"}'
+     -d '{"email":"test@example.com","password":"Password123!"}'
    ```
 
-3. **Access protected endpoints**:
+3. **Send a message (creates new conversation)**:
    ```bash
-   curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-     http://localhost:8080/api/v1/conversations
+   curl -X POST http://localhost:8080/api/v1/messages \
+     -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"message":"Hello, how are you?","stream":false}'
+   ```
+
+4. **Send follow-up message**:
+   ```bash
+   curl -X POST http://localhost:8080/api/v1/messages \
+     -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"message":"Tell me a joke","conversation_id":"UUID_FROM_PREVIOUS_RESPONSE","stream":true}'
+   ```
+
+5. **Run complete test suite**:
+   ```bash
+   ./test_api.sh
    ```
 
 ## 📋 Next Steps (Future Development)
 
-### Phase 2 - AI Integration
-- [ ] WebSocket implementation for real-time chat
-- [ ] AI agent integration with OpenAI/Eino framework
-- [ ] Message streaming capabilities
-- [ ] "Agent is typing" indicators
-
 ### Phase 3 - Enhanced Features
+- [ ] WebSocket implementation for better real-time experience
+- [ ] "Agent is typing" indicators
 - [ ] Conversation search and filtering
 - [ ] Message pagination improvements
 - [ ] User profile management
 - [ ] Rate limiting
 - [ ] Logging and monitoring
 - [ ] API documentation with Swagger
+- [ ] Support for multiple AI models (GPT-3.5, GPT-4, Claude, etc.)
+- [ ] Model selection per conversation
+- [ ] Custom system prompts per user
 
 ### Phase 4 - Production Readiness
 - [ ] Comprehensive testing suite
@@ -186,6 +218,20 @@ All tables include proper indexing for performance and automatic timestamp manag
 
 ---
 
-## ✅ Implementation Complete
+## ✅ Latest Updates (Phase 2 Complete)
 
-All core authentication features have been successfully implemented according to the PRD specifications. The application is ready for development and testing of the AI agent integration phase.
+### What's New:
+1. **AI Integration**: Successfully integrated Eino framework with OpenAI for intelligent responses
+2. **Unified Message Endpoint**: Single `POST /api/v1/messages` endpoint handles both new conversations and existing ones
+3. **HTTP Streaming**: Implemented chunked transfer encoding with Server-Sent Events for real-time AI responses
+4. **Chat History**: Maintains conversation context across messages for coherent dialogues
+5. **Auto Title Generation**: Automatically generates conversation titles from the first message
+6. **Flexible Response Modes**: Support for both streaming and non-streaming responses based on client preference
+
+### Key Features:
+- **Smart Conversation Management**: Automatically creates new conversations or appends to existing ones based on `conversation_id`
+- **Vietnamese Language Support**: Templates configured for Vietnamese language interactions
+- **Real-time Streaming**: HTTP chunked streaming provides character-by-character response delivery
+- **Context Awareness**: AI maintains conversation history for contextual responses
+
+The application now provides a complete chat experience with AI integration, ready for frontend development and user testing.

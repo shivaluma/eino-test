@@ -25,8 +25,12 @@ type Message struct {
 	CreatedAt      time.Time       `json:"created_at" db:"created_at"`
 }
 
-type CreateConversationRequest struct {
-	Title *string `json:"title"`
+type SendMessageRequest struct {
+	Message        string          `json:"message" validate:"required"`
+	ConversationID *uuid.UUID      `json:"conversation_id,omitempty"`
+	Model          string          `json:"model,omitempty"`
+	Stream         bool            `json:"stream"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 type CreateMessageRequest struct {

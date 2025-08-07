@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	"github.com/shivaluma/eino-agent/config"
+	"github.com/shivaluma/eino-agent/internal/ai"
+	"github.com/shivaluma/eino-agent/internal/ai/providers"
 	"github.com/shivaluma/eino-agent/internal/auth"
 	"github.com/shivaluma/eino-agent/internal/database"
 	"github.com/shivaluma/eino-agent/internal/handlers"
@@ -45,8 +47,25 @@ func main() {
 	convRepo := repository.NewConversationRepository(db)
 	authSvc := auth.NewService(cfg)
 
+	// Initialize AI service with provider factory
+	ctx := context.Background()
+	factory := providers.NewFactory()
+	provider, err := factory.GetDefaultProvider()
+	if err != nil {
+		log.Fatalf("Failed to get AI provider: %v", err)
+	}
+	
+	model, err := provider.CreateChatModel(ctx)
+	if err != nil {
+		log.Fatalf("Failed to create chat model: %v", err)
+	}
+	
+	aiService := ai.NewService(model, &ai.Config{
+		DefaultProvider: provider.GetName(),
+	})
+
 	authHandler := handlers.NewAuthHandler(userRepo, authSvc)
-	convHandler := handlers.NewConversationHandler(convRepo, authSvc)
+	convHandler := handlers.NewConversationHandler(convRepo, authSvc, aiService)
 
 	e := echo.New()
 
@@ -66,9 +85,12 @@ func main() {
 	protected.Use(middleware.AuthMiddleware(authSvc))
 
 	protected.GET("/conversations", convHandler.GetConversations)
-	protected.POST("/conversations", convHandler.CreateConversation)
+	protected.POST("/conversations", convHandler.CreateConversation) // Deprecated - for backward compatibility
 	protected.GET("/conversations/:id", convHandler.GetConversation)
 	protected.GET("/conversations/:id/messages", convHandler.GetMessages)
+	
+	// New message endpoint - handles both new conversations and existing ones
+	protected.POST("/messages", convHandler.SendMessage)
 
 	e.GET("/health", func(c echo.Context) error {
 		if err := db.Health(c.Request().Context()); err != nil {

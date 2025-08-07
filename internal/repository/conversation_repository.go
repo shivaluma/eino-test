@@ -149,3 +149,9 @@ func (r *ConversationRepository) GetMessageCount(ctx context.Context, conversati
 	err := r.db.Pool.QueryRow(ctx, query, conversationID).Scan(&count)
 	return count, err
 }
+
+func (r *ConversationRepository) UpdateTimestamp(ctx context.Context, conversationID uuid.UUID) error {
+	query := `UPDATE conversations SET updated_at = NOW() WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, conversationID)
+	return err
+}
