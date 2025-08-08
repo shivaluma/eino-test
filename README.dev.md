@@ -35,8 +35,14 @@ make dev
 - `make lint` - Run golangci-lint (requires installation)
 
 ### Database Management
-- `make db-migrate` - Run database migrations
-- `make db-reset` - Reset database and run migrations
+- `make db-migrate` - Run all pending database migrations
+- `make db-migrate-status` - Show current migration status
+- `make db-migrate-generate NAME="migration_name"` - Generate new migration file
+- `make db-migrate-rollback` - Rollback the last migration
+- `make db-migrate-rollback-to VERSION=X` - Rollback to specific version
+- `make db-migrate-validate` - Validate migration checksums
+- `make db-migrate-reset-confirmed` - Reset database (WARNING: destructive)
+- `make db-reset` - Alias for db-migrate-reset (shows warning first)
 - `make db-connect` - Connect to database via psql
 
 ### Docker Development
@@ -93,8 +99,17 @@ make test-coverage
 
 ### Database Changes
 ```bash
-# Apply migrations
+# Apply pending migrations
 make db-migrate
+
+# Check migration status
+make db-migrate-status
+
+# Create new migration
+make db-migrate-generate NAME="add_new_feature"
+
+# Rollback last migration
+make db-migrate-rollback
 
 # Reset database (careful - this drops all data!)
 make db-reset
@@ -117,6 +132,8 @@ Key variables:
 - `JWT_*` - JWT token configuration  
 - `SERVER_*` - Server settings
 - `OPENAI_*` - AI integration settings
+- `OAUTH_*` - OAuth provider configurations (GitHub, Google)
+- `FRONTEND_URL` - Frontend URL for OAuth redirects
 
 ### Air Configuration
 Live reload is configured in `.air.toml`. Key settings:
@@ -173,7 +190,70 @@ make test
 3. **Use connection pooling** - Already configured in the database layer
 4. **Watch build logs** - Air shows compilation errors immediately
 
+## Migration System
+
+### Creating New Migrations
+```bash
+# Generate a new migration file
+make db-migrate-generate NAME="add_user_preferences"
+# This creates: migrations/003_20250809123456_add_user_preferences.sql
+
+# Edit the generated file to add your SQL
+# Then apply it:
+make db-migrate
+```
+
+### Migration File Format
+Generated migrations follow the pattern: `XXX_YYYYMMDDHHMMSS_name.sql`
+- `XXX` = Sequential version (001, 002, 003...)
+- `YYYYMMDDHHMMSS` = Timestamp
+- `name` = Sanitized migration name
+
+### Migration Safety
+- All migrations run in transactions
+- Checksums prevent tampering with applied migrations
+- Auto-migration runs on server startup
+- Rollback support for safe reversions
+
+## OAuth Development
+
+### Testing OAuth Locally
+1. Set up GitHub/Google OAuth applications
+2. Configure redirect URIs: `http://localhost:8888/api/v1/auth/oauth/github/callback`
+3. Add credentials to `.env`:
+   ```
+   OAUTH_GITHUB_CLIENT_ID=your_github_client_id
+   OAUTH_GITHUB_CLIENT_SECRET=your_github_client_secret
+   OAUTH_GOOGLE_CLIENT_ID=your_google_client_id
+   OAUTH_GOOGLE_CLIENT_SECRET=your_google_client_secret
+   ```
+
+### OAuth Flow Testing
+```bash
+# Get available providers
+curl http://localhost:8888/api/v1/auth/oauth/providers
+
+# Initiate OAuth (will redirect to provider)
+curl http://localhost:8888/api/v1/auth/oauth/github/authorize
+
+# Check linked accounts (requires auth)
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:8888/api/v1/auth/oauth/linked
+```
+
 ## Troubleshooting
+
+### Migration Issues
+```bash
+# Check migration status
+make db-migrate-status
+
+# Validate migration integrity
+make db-migrate-validate
+
+# If migrations are corrupted, reset (WARNING: loses data)
+make db-migrate-reset-confirmed
+```
 
 ### Air not working
 ```bash
@@ -208,6 +288,11 @@ make build
 
 ### Using curl
 ```bash
+# Check email availability
+curl -X POST http://localhost:8888/api/v1/check-email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
 # Register user
 curl -X POST http://localhost:8888/api/v1/register \
   -H "Content-Type: application/json" \
@@ -221,6 +306,19 @@ curl -X POST http://localhost:8888/api/v1/login \
 # Use token for protected endpoints
 curl -H "Authorization: Bearer YOUR_TOKEN" \
   http://localhost:8888/api/v1/conversations
+
+# Send a message (creates new conversation)
+curl -X POST http://localhost:8888/api/v1/messages \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Hello AI!","stream":false}'
+
+# OAuth providers
+curl http://localhost:8888/api/v1/auth/oauth/providers
+
+# Linked accounts (requires auth)
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:8888/api/v1/auth/oauth/linked
 ```
 
 ### Health Check
