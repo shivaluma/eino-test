@@ -22,7 +22,7 @@ import { GithubIcon } from "@/components/icons/github-icon";
 import { GoogleIcon } from "@/components/icons/google-icon";
 import { useTranslations } from "next-intl";
 import { SocialAuthenticationProvider } from "@/types/authentication";
-import { oauthClient } from "@/lib/auth/oauth";
+import { initiateOAuth } from "@/lib/auth/oauth";
 import { useState } from "react";
 
 export default function SignIn({
@@ -55,7 +55,7 @@ export default function SignIn({
     try {
       setIsOAuthLoading(true);
       // Initiate OAuth flow - this will redirect to the provider
-      await oauthClient.initiateOAuth(provider as 'github' | 'google');
+      initiateOAuth(provider as 'github' | 'google');
     } catch (error) {
       console.error('OAuth initiation failed:', error);
       setIsOAuthLoading(false);

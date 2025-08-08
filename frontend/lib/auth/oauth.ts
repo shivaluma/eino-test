@@ -1,4 +1,4 @@
-import { api } from '@/lib/api/api-client';
+import { apiClient } from '@/lib/api/client';
 
 export type OAuthProvider = 'github' | 'google';
 
@@ -19,82 +19,92 @@ export interface LinkedAccount {
   created_at: string;
 }
 
-class OAuthClient {
-  /**
-   * Get list of enabled OAuth providers
-   */
-  async getProviders(): Promise<OAuthProvider[]> {
-    const response = await api.get<OAuthProvidersResponse>('/auth/oauth/providers');
-    return response.providers;
-  }
+const getBaseURL = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
-  /**
-   * Initiate OAuth flow for a provider
-   */
-  async initiateOAuth(provider: OAuthProvider): Promise<void> {
-    // For web flow, directly redirect
-    const authUrl = `${api.baseUrl}/auth/oauth/${provider}/authorize`;
-    window.location.href = authUrl;
+/**
+ * Get list of enabled OAuth providers
+ */
+export const getOAuthProviders = async (): Promise<OAuthProvider[]> => {
+  const response = await apiClient.get<OAuthProvidersResponse>('/api/v1/auth/oauth/providers');
+  if (response.error) {
+    throw new Error(response.error);
   }
+  return response.data?.providers || [];
+};
 
-  /**
-   * Initiate OAuth flow and get URL (for custom handling)
-   */
-  async getOAuthUrl(provider: OAuthProvider): Promise<string> {
-    const response = await api.get<OAuthInitResponse>(
-      `/auth/oauth/${provider}/authorize?redirect=false`
-    );
-    return response.auth_url;
+/**
+ * Initiate OAuth flow for a provider
+ */
+export const initiateOAuth = (provider: OAuthProvider): void => {
+  // For web flow, directly redirect
+  const authUrl = `${getBaseURL()}/api/v1/auth/oauth/${provider}/authorize`;
+  window.location.href = authUrl;
+};
+
+/**
+ * Initiate OAuth flow and get URL (for custom handling)
+ */
+export const getOAuthUrl = async (provider: OAuthProvider): Promise<string> => {
+  const response = await apiClient.get<OAuthInitResponse>(
+    `/api/v1/auth/oauth/${provider}/authorize?redirect=false`
+  );
+  if (response.error) {
+    throw new Error(response.error);
   }
+  return response.data?.auth_url || '';
+};
 
-  /**
-   * Handle OAuth callback tokens
-   */
-  handleCallback(accessToken: string, refreshToken: string): void {
-    // Store tokens
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
-    
-    // Redirect to dashboard or home
-    window.location.href = '/';
+/**
+ * Handle OAuth callback tokens
+ */
+export const handleOAuthCallback = (accessToken: string, refreshToken: string): void => {
+  // Store tokens
+  localStorage.setItem('access_token', accessToken);
+  localStorage.setItem('refresh_token', refreshToken);
+  
+  // Redirect to dashboard or home
+  window.location.href = '/';
+};
+
+/**
+ * Get linked OAuth accounts for the current user
+ */
+export const getLinkedAccounts = async (): Promise<LinkedAccount[]> => {
+  const response = await apiClient.auth.get<{ linked_accounts: LinkedAccount[] }>(
+    '/api/v1/auth/oauth/linked'
+  );
+  if (response.error) {
+    throw new Error(response.error);
   }
+  return response.data?.linked_accounts || [];
+};
 
-  /**
-   * Get linked OAuth accounts for the current user
-   */
-  async getLinkedAccounts(): Promise<LinkedAccount[]> {
-    const response = await api.get<{ linked_accounts: LinkedAccount[] }>(
-      '/auth/oauth/linked'
-    );
-    return response.linked_accounts || [];
+/**
+ * Link an OAuth account to the current user
+ */
+export const linkOAuthAccount = (provider: OAuthProvider): void => {
+  const authUrl = `${getBaseURL()}/api/v1/auth/oauth/${provider}/link`;
+  window.location.href = authUrl;
+};
+
+/**
+ * Unlink an OAuth account from the current user
+ */
+export const unlinkOAuthAccount = async (provider: OAuthProvider): Promise<void> => {
+  const response = await apiClient.auth.delete(`/api/v1/auth/oauth/${provider}/unlink`);
+  if (response.error) {
+    throw new Error(response.error);
   }
+};
 
-  /**
-   * Link an OAuth account to the current user
-   */
-  async linkAccount(provider: OAuthProvider): Promise<void> {
-    const authUrl = `${api.baseUrl}/auth/oauth/${provider}/link`;
-    window.location.href = authUrl;
+/**
+ * Check if a provider is available
+ */
+export const isOAuthProviderAvailable = async (provider: OAuthProvider): Promise<boolean> => {
+  try {
+    const providers = await getOAuthProviders();
+    return providers.includes(provider);
+  } catch {
+    return false;
   }
-
-  /**
-   * Unlink an OAuth account from the current user
-   */
-  async unlinkAccount(provider: OAuthProvider): Promise<void> {
-    await api.delete(`/auth/oauth/${provider}/unlink`);
-  }
-
-  /**
-   * Check if a provider is available
-   */
-  async isProviderAvailable(provider: OAuthProvider): Promise<boolean> {
-    try {
-      const providers = await this.getProviders();
-      return providers.includes(provider);
-    } catch {
-      return false;
-    }
-  }
-}
-
-export const oauthClient = new OAuthClient();
+};

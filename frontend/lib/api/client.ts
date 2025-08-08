@@ -3,7 +3,7 @@ type ApiResponse<T> = {
   error?: string;
 };
 
-const getBaseURL = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const getBaseURL = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
 
 const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> => {
   if (!response.ok) {
@@ -19,16 +19,34 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
   }
 };
 
+const getAuthToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
+
 const request = async <T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  requiresAuth: boolean = false
 ): Promise<ApiResponse<T>> => {
   try {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add auth token if required
+    if (requiresAuth) {
+      const token = getAuthToken();
+      if (token) {
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      }
+    }
+
     const response = await fetch(`${getBaseURL()}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       ...options,
     });
 
@@ -39,25 +57,51 @@ const request = async <T>(
 };
 
 export const apiClient = {
-  post: <T>(endpoint: string, body: any) =>
+  // Public endpoints (no auth required)
+  post: <T>(endpoint: string, body?: any) =>
     request<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(body),
-    }),
+      body: body ? JSON.stringify(body) : undefined,
+    }, false),
 
   get: <T>(endpoint: string) =>
     request<T>(endpoint, {
       method: 'GET',
-    }),
+    }, false),
 
-  put: <T>(endpoint: string, body: any) =>
+  put: <T>(endpoint: string, body?: any) =>
     request<T>(endpoint, {
       method: 'PUT',
-      body: JSON.stringify(body),
-    }),
+      body: body ? JSON.stringify(body) : undefined,
+    }, false),
 
   delete: <T>(endpoint: string) =>
     request<T>(endpoint, {
       method: 'DELETE',
-    }),
+    }, false),
+
+  // Protected endpoints (auth required)
+  auth: {
+    post: <T>(endpoint: string, body?: any) =>
+      request<T>(endpoint, {
+        method: 'POST',
+        body: body ? JSON.stringify(body) : undefined,
+      }, true),
+
+    get: <T>(endpoint: string) =>
+      request<T>(endpoint, {
+        method: 'GET',
+      }, true),
+
+    put: <T>(endpoint: string, body?: any) =>
+      request<T>(endpoint, {
+        method: 'PUT',
+        body: body ? JSON.stringify(body) : undefined,
+      }, true),
+
+    delete: <T>(endpoint: string) =>
+      request<T>(endpoint, {
+        method: 'DELETE',
+      }, true),
+  },
 };

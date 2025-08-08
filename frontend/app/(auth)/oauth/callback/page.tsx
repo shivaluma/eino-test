@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader } from 'lucide-react';
-import { oauthClient } from '@/lib/auth/oauth';
+import { handleOAuthCallback } from '@/lib/auth/oauth';
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function OAuthCallbackPage() {
 
       if (accessToken && refreshToken) {
         // Store tokens and redirect
-        oauthClient.handleCallback(accessToken, refreshToken);
+        handleOAuthCallback(accessToken, refreshToken);
       } else {
         setError('Missing authentication tokens');
         setTimeout(() => {
