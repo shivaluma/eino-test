@@ -22,23 +22,32 @@ func NewUserRepository(db *database.DB) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	query := `
-		INSERT INTO users (username, email, password_hash)
-		VALUES ($1, $2, $3)
+		INSERT INTO users (username, email, password_hash, oauth_provider, oauth_provider_id, avatar_url, oauth_email)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at, updated_at`
 
-	return r.db.Pool.QueryRow(ctx, query, user.Username, user.Email, user.PasswordHash).
-		Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	return r.db.Pool.QueryRow(ctx, query,
+		user.Username,
+		user.Email,
+		user.PasswordHash,
+		user.OAuthProvider,
+		user.OAuthProviderID,
+		user.AvatarURL,
+		user.OAuthEmail,
+	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, created_at, updated_at
+		SELECT id, username, email, password_hash, oauth_provider, oauth_provider_id, avatar_url, oauth_email, created_at, updated_at
 		FROM users
 		WHERE email = $1`
 
 	user := &models.User{}
 	err := r.db.Pool.QueryRow(ctx, query, email).
-		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash,
+			&user.OAuthProvider, &user.OAuthProviderID, &user.AvatarURL, &user.OAuthEmail,
+			&user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -52,13 +61,15 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, created_at, updated_at
+		SELECT id, username, email, password_hash, oauth_provider, oauth_provider_id, avatar_url, oauth_email, created_at, updated_at
 		FROM users
 		WHERE id = $1`
 
 	user := &models.User{}
 	err := r.db.Pool.QueryRow(ctx, query, id).
-		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash,
+			&user.OAuthProvider, &user.OAuthProviderID, &user.AvatarURL, &user.OAuthEmail,
+			&user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -72,13 +83,15 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, created_at, updated_at
+		SELECT id, username, email, password_hash, oauth_provider, oauth_provider_id, avatar_url, oauth_email, created_at, updated_at
 		FROM users
 		WHERE username = $1`
 
 	user := &models.User{}
 	err := r.db.Pool.QueryRow(ctx, query, username).
-		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash,
+			&user.OAuthProvider, &user.OAuthProviderID, &user.AvatarURL, &user.OAuthEmail,
+			&user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {

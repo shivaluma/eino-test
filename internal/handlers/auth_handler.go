@@ -90,7 +90,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	user := &models.User{
 		Username:     req.Name,
 		Email:        req.Email,
-		PasswordHash: hashedPassword,
+		PasswordHash: &hashedPassword,
 	}
 
 	if err := h.userRepo.Create(c.Request().Context(), user); err != nil {

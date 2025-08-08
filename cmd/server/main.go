@@ -14,6 +14,7 @@ import (
 	"github.com/shivaluma/eino-agent/internal/database"
 	"github.com/shivaluma/eino-agent/internal/handlers"
 	"github.com/shivaluma/eino-agent/internal/middleware"
+	"github.com/shivaluma/eino-agent/internal/migrations"
 	"github.com/shivaluma/eino-agent/internal/repository"
 
 	"github.com/go-playground/validator/v10"
@@ -43,9 +44,19 @@ func main() {
 	}
 	defer db.Close()
 
+	// Run database migrations on startup
+	log.Println("Running database migrations...")
+	migrator := migrations.NewMigrator(db.Pool, "migrations", cfg)
+	if err := migrator.Migrate(context.Background()); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
+	}
+	log.Println("Database migrations completed successfully")
+
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
+	oauthRepo := repository.NewOAuthRepository(db.Pool)
 	authSvc := auth.NewService(cfg)
+	oauthSvc := auth.NewOAuthService(cfg)
 
 	// Initialize AI service with provider factory
 	ctx := context.Background()
@@ -54,17 +65,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get AI provider: %v", err)
 	}
-	
+
 	model, err := provider.CreateChatModel(ctx)
 	if err != nil {
 		log.Fatalf("Failed to create chat model: %v", err)
 	}
-	
+
 	aiService := ai.NewService(model, &ai.Config{
 		DefaultProvider: provider.GetName(),
 	})
 
 	authHandler := handlers.NewAuthHandler(userRepo, authSvc)
+	oauthHandler := handlers.NewOAuthHandler(userRepo, oauthRepo, authSvc, oauthSvc, cfg.OAuth.FrontendURL)
 	convHandler := handlers.NewConversationHandler(convRepo, authSvc, aiService)
 
 	e := echo.New()
@@ -82,14 +94,24 @@ func main() {
 	api.POST("/login", authHandler.Login)
 	api.POST("/token/refresh", authHandler.RefreshToken)
 
+	// OAuth routes
+	api.GET("/auth/oauth/providers", oauthHandler.GetOAuthProviders)
+	api.GET("/auth/oauth/:provider/authorize", oauthHandler.InitiateOAuth)
+	api.GET("/auth/oauth/:provider/callback", oauthHandler.HandleOAuthCallback)
+
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware(authSvc))
+
+	// Protected OAuth routes
+	protected.GET("/auth/oauth/linked", oauthHandler.GetLinkedAccounts)
+	protected.POST("/auth/oauth/:provider/link", oauthHandler.LinkOAuthAccount)
+	protected.DELETE("/auth/oauth/:provider/unlink", oauthHandler.UnlinkOAuthAccount)
 
 	protected.GET("/conversations", convHandler.GetConversations)
 	protected.POST("/conversations", convHandler.CreateConversation) // Deprecated - for backward compatibility
 	protected.GET("/conversations/:id", convHandler.GetConversation)
 	protected.GET("/conversations/:id/messages", convHandler.GetMessages)
-	
+
 	// New message endpoint - handles both new conversations and existing ones
 	protected.POST("/messages", convHandler.SendMessage)
 

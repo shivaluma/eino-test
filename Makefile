@@ -1,4 +1,4 @@
-.PHONY: run build test clean fmt vet tidy deps vendor dev air server docker-up docker-down docker-logs db-migrate db-reset help
+.PHONY: run build test clean fmt vet tidy deps vendor dev air server docker-up docker-down docker-logs db-migrate db-migrate-status db-migrate-rollback db-migrate-rollback-to db-migrate-validate db-migrate-reset db-migrate-reset-confirmed db-migrate-generate db-reset db-connect help
 
 # Variables
 BINARY_NAME=food-agent-server
@@ -117,40 +117,46 @@ docker-rebuild:
 # Database commands
 db-migrate:
 	@echo "Running database migrations..."
-	@if [ -f .env ]; then \
-		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && \
-		if command -v psql >/dev/null 2>&1; then \
-			psql postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME -f migrations/001_initial_schema.sql; \
-		else \
-			echo "psql not found locally, using Docker..."; \
-			docker run --rm -i \
-				-v "$(PWD)/migrations:/migrations" \
-				postgres:15-alpine \
-				psql postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME -f /migrations/001_initial_schema.sql; \
-		fi; \
-	else \
-		echo "Error: .env file not found. Please copy .env.example to .env and configure it."; \
-		exit 1; \
-	fi
+	@go run cmd/migrate/main.go -command=migrate
 
-db-reset:
-	@echo "Resetting database..."
-	@if [ -f .env ]; then \
-		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && \
-		if command -v psql >/dev/null 2>&1; then \
-			psql postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && \
-			$(MAKE) db-migrate; \
-		else \
-			echo "psql not found locally, using Docker..."; \
-			docker run --rm -i \
-				postgres:15-alpine \
-				psql postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && \
-			$(MAKE) db-migrate; \
-		fi; \
-	else \
-		echo "Error: .env file not found. Please copy .env.example to .env and configure it."; \
+db-migrate-status:
+	@echo "Checking migration status..."
+	@go run cmd/migrate/main.go -command=status
+
+db-migrate-rollback:
+	@echo "Rolling back last migration..."
+	@go run cmd/migrate/main.go -command=rollback
+
+db-migrate-rollback-to:
+	@echo "Rolling back to specific version..."
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION parameter required. Usage: make db-migrate-rollback-to VERSION=X"; \
 		exit 1; \
 	fi
+	@go run cmd/migrate/main.go -command=rollback-to -version=$(VERSION)
+
+db-migrate-validate:
+	@echo "Validating migration checksums..."
+	@go run cmd/migrate/main.go -command=validate
+
+db-migrate-reset:
+	@echo "⚠ WARNING: This will DROP ALL TABLES and reapply all migrations!"
+	@echo "This operation cannot be undone. Press Ctrl+C to cancel."
+	@echo "To proceed, run: make db-migrate-reset-confirmed"
+
+db-migrate-reset-confirmed:
+	@echo "Resetting database..."
+	@go run cmd/migrate/main.go -command=reset -confirm
+
+db-migrate-generate:
+	@echo "Generating new migration file..."
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME parameter required. Usage: make db-migrate-generate NAME=your_migration_name"; \
+		exit 1; \
+	fi
+	@go run cmd/migrate/main.go -command=generate -name=$(NAME)
+
+db-reset: db-migrate-reset
 
 db-connect:
 	@echo "Connecting to database..."
@@ -237,9 +243,16 @@ help:
 	@echo "    docker-rebuild   - Rebuild Docker services"
 	@echo ""
 	@echo "  Database:"
-	@echo "    db-migrate       - Run database migrations"
-	@echo "    db-reset         - Reset database and run migrations"
-	@echo "    db-connect       - Connect to database"
+	@echo "    db-migrate                - Run all pending database migrations"
+	@echo "    db-migrate-status         - Show current migration status"
+	@echo "    db-migrate-rollback       - Rollback the last migration"
+	@echo "    db-migrate-rollback-to    - Rollback to specific version (use VERSION=X)"
+	@echo "    db-migrate-validate       - Validate migration checksums"
+	@echo "    db-migrate-reset          - Reset database (WARNING: destructive)"
+	@echo "    db-migrate-reset-confirmed- Confirm database reset"
+	@echo "    db-migrate-generate       - Generate new migration file (use NAME=your_name)"
+	@echo "    db-reset                  - Alias for db-migrate-reset"
+	@echo "    db-connect                - Connect to database"
 	@echo ""
 	@echo "  Setup:"
 	@echo "    setup            - Setup development environment"

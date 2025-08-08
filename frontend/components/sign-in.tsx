@@ -22,6 +22,8 @@ import { GithubIcon } from "@/components/icons/github-icon";
 import { GoogleIcon } from "@/components/icons/google-icon";
 import { useTranslations } from "next-intl";
 import { SocialAuthenticationProvider } from "@/types/authentication";
+import { oauthClient } from "@/lib/auth/oauth";
+import { useState } from "react";
 
 export default function SignIn({
   emailAndPasswordEnabled,
@@ -35,6 +37,7 @@ export default function SignIn({
   const t = useTranslations("Auth.SignIn");
 
   const loginMutation = useLoginMutation();
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
 
   const [formData, setFormData] = useObjectState({
     email: "",
@@ -48,9 +51,15 @@ export default function SignIn({
     });
   };
 
-  const handleSocialSignIn = (provider: SocialAuthenticationProvider) => {
-    // Social sign-in not implemented in the Go backend yet
-    console.log("Social sign-in not yet implemented:", provider);
+  const handleSocialSignIn = async (provider: SocialAuthenticationProvider) => {
+    try {
+      setIsOAuthLoading(true);
+      // Initiate OAuth flow - this will redirect to the provider
+      await oauthClient.initiateOAuth(provider as 'github' | 'google');
+    } catch (error) {
+      console.error('OAuth initiation failed:', error);
+      setIsOAuthLoading(false);
+    }
   };
   return (
     <div className="w-full h-full flex flex-col p-4 md:p-8 justify-center">
@@ -128,9 +137,16 @@ export default function SignIn({
                     variant="outline"
                     onClick={() => handleSocialSignIn("google")}
                     className="flex-1 w-full"
+                    disabled={isOAuthLoading || loginMutation.isPending}
                   >
-                    <GoogleIcon className="size-4 fill-foreground" />
-                    Google
+                    {isOAuthLoading ? (
+                      <Loader className="size-4 animate-spin" />
+                    ) : (
+                      <>
+                        <GoogleIcon className="size-4 fill-foreground" />
+                        Google
+                      </>
+                    )}
                   </Button>
                 )}
                 {socialAuthenticationProviders.includes("github") && (
@@ -138,9 +154,16 @@ export default function SignIn({
                     variant="outline"
                     onClick={() => handleSocialSignIn("github")}
                     className="flex-1 w-full"
+                    disabled={isOAuthLoading || loginMutation.isPending}
                   >
-                    <GithubIcon className="size-4 fill-foreground" />
-                    GitHub
+                    {isOAuthLoading ? (
+                      <Loader className="size-4 animate-spin" />
+                    ) : (
+                      <>
+                        <GithubIcon className="size-4 fill-foreground" />
+                        GitHub
+                      </>
+                    )}
                   </Button>
                 )}
               </div>

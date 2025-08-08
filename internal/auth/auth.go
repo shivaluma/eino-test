@@ -32,8 +32,11 @@ func (s *Service) HashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
-func (s *Service) VerifyPassword(hashedPassword, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+func (s *Service) VerifyPassword(hashedPassword *string, password string) error {
+	if hashedPassword == nil {
+		return fmt.Errorf("password authentication not available for this account")
+	}
+	return bcrypt.CompareHashAndPassword([]byte(*hashedPassword), []byte(password))
 }
 
 func (s *Service) GenerateAccessToken(userID uuid.UUID, username string) (string, error) {

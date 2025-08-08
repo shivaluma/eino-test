@@ -12,9 +12,11 @@ require (
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	golang.org/x/crypto v0.40.0
+	golang.org/x/oauth2 v0.30.0
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect

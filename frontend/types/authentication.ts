@@ -12,21 +12,15 @@ export type SocialAuthenticationProvider = z.infer<
 >;
 
 export const GitHubConfigSchema = z.object({
-  clientId: z.string().min(1),
-  clientSecret: z.string().min(1),
+  enabled: z.boolean().default(false),
 });
 
 export const GoogleConfigSchema = z.object({
-  clientId: z.string().min(1),
-  clientSecret: z.string().min(1),
-  prompt: z.literal("select_account").optional(),
+  enabled: z.boolean().default(false),
 });
 
 export const MicrosoftConfigSchema = z.object({
-  clientId: z.string().min(1),
-  clientSecret: z.string().min(1),
-  tenantId: z.string().default("common"),
-  prompt: z.literal("select_account").optional(),
+  enabled: z.boolean().default(false),
 });
 
 export const SocialAuthenticationConfigSchema = z.object({

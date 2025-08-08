@@ -10,6 +10,7 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Server   ServerConfig
+	OAuth    OAuthConfig
 }
 
 type DatabaseConfig struct {
@@ -36,6 +37,20 @@ type ServerConfig struct {
 	Host string
 }
 
+type OAuthConfig struct {
+	GitHub       OAuthProviderConfig
+	Google       OAuthProviderConfig
+	StateSecret  string
+	FrontendURL  string
+}
+
+type OAuthProviderConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	Enabled      bool
+}
+
 func Load() *Config {
 	return &Config{
 		Database: DatabaseConfig{
@@ -58,6 +73,22 @@ func Load() *Config {
 		Server: ServerConfig{
 			Port: getEnv("SERVER_PORT", "8080"),
 			Host: getEnv("SERVER_HOST", "localhost"),
+		},
+		OAuth: OAuthConfig{
+			GitHub: OAuthProviderConfig{
+				ClientID:     getEnv("GITHUB_CLIENT_ID", ""),
+				ClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("GITHUB_REDIRECT_URL", "http://localhost:8080/api/v1/auth/oauth/github/callback"),
+				Enabled:      getEnv("GITHUB_CLIENT_ID", "") != "" && getEnv("GITHUB_CLIENT_SECRET", "") != "",
+			},
+			Google: OAuthProviderConfig{
+				ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+				ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/api/v1/auth/oauth/google/callback"),
+				Enabled:      getEnv("GOOGLE_CLIENT_ID", "") != "" && getEnv("GOOGLE_CLIENT_SECRET", "") != "",
+			},
+			StateSecret: getEnv("OAUTH_STATE_SECRET", "your-oauth-state-secret-32-bytes"),
+			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		},
 	}
 }

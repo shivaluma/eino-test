@@ -8,7 +8,6 @@ import {
   AuthConfig,
   AuthConfigSchema,
 } from "@/types/authentication";
-import { experimental_taintUniqueValue } from "react";
 import { parseEnvBoolean } from "@/lib/utils";
 
 function parseSocialAuthConfigs() {
@@ -18,64 +17,32 @@ function parseSocialAuthConfigs() {
     microsoft?: MicrosoftConfig;
   } = {};
 
-  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  if (process.env.GITHUB_ENABLED === "true") {
     const githubResult = GitHubConfigSchema.safeParse({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      enabled: true,
     });
     if (githubResult.success) {
       configs.github = githubResult.data;
-      experimental_taintUniqueValue(
-        "Do not pass GITHUB_CLIENT_SECRET to the client",
-        configs,
-        configs.github.clientSecret,
-      );
     }
   }
 
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    const forceAccountSelection = parseEnvBoolean(
-      process.env.GOOGLE_FORCE_ACCOUNT_SELECTION,
-    );
+  if (process.env.GOOGLE_ENABLED === "true") {
+    const googleResult = GoogleConfigSchema.safeParse({
+      enabled: true,
+    });
 
-    const googleConfig: GoogleConfig = {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      ...(forceAccountSelection && { prompt: "select_account" as const }),
-    };
-
-    const googleResult = GoogleConfigSchema.safeParse(googleConfig);
     if (googleResult.success) {
       configs.google = googleResult.data;
-      experimental_taintUniqueValue(
-        "Do not pass GOOGLE_CLIENT_SECRET to the client",
-        configs,
-        configs.google.clientSecret,
-      );
     }
   }
 
-  if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
-    const forceAccountSelection = parseEnvBoolean(
-      process.env.MICROSOFT_FORCE_ACCOUNT_SELECTION,
-    );
-    const tenantId = process.env.MICROSOFT_TENANT_ID || "common";
+    if (process.env.MICROSOFT_ENABLED === "true") {
+    const microsoftResult = MicrosoftConfigSchema.safeParse({
+      enabled: true,
+    });
 
-    const microsoftConfig: MicrosoftConfig = {
-      clientId: process.env.MICROSOFT_CLIENT_ID,
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-      tenantId,
-      ...(forceAccountSelection && { prompt: "select_account" as const }),
-    };
-
-    const microsoftResult = MicrosoftConfigSchema.safeParse(microsoftConfig);
     if (microsoftResult.success) {
       configs.microsoft = microsoftResult.data;
-      experimental_taintUniqueValue(
-        "Do not pass MICROSOFT_CLIENT_SECRET to the client",
-        configs,
-        configs.microsoft.clientSecret,
-      );
     }
   }
 
