@@ -26,14 +26,14 @@ func (r *OAuthRepository) StoreState(ctx context.Context, state *models.OAuthSta
 		VALUES ($1, $2, $3, $4, $5)
 	`
 
-	_, err := r.db.Exec(ctx, query, 
-		state.State, 
-		state.Provider, 
-		state.CodeVerifier, 
-		state.RedirectURI, 
+	_, err := r.db.Exec(ctx, query,
+		state.State,
+		state.Provider,
+		state.CodeVerifier,
+		state.RedirectURI,
 		state.ExpiresAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to store OAuth state: %w", err)
 	}
@@ -61,7 +61,7 @@ func (r *OAuthRepository) GetState(ctx context.Context, state string) (*models.O
 		&oauthState.CreatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == sql.ErrNoRows || err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
@@ -74,7 +74,7 @@ func (r *OAuthRepository) GetState(ctx context.Context, state string) (*models.O
 // DeleteState deletes an OAuth state
 func (r *OAuthRepository) DeleteState(ctx context.Context, state string) error {
 	query := `DELETE FROM oauth_states WHERE state = $1`
-	
+
 	_, err := r.db.Exec(ctx, query, state)
 	if err != nil {
 		return fmt.Errorf("failed to delete OAuth state: %w", err)
@@ -143,7 +143,7 @@ func (r *OAuthRepository) GetByProviderID(ctx context.Context, provider, provide
 		&account.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == sql.ErrNoRows || err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
@@ -235,7 +235,7 @@ func (r *OAuthRepository) UpdateAccount(ctx context.Context, account *models.OAu
 // DeleteByUserAndProvider deletes an OAuth account for a user and provider
 func (r *OAuthRepository) DeleteByUserAndProvider(ctx context.Context, userID uuid.UUID, provider string) error {
 	query := `DELETE FROM oauth_accounts WHERE user_id = $1 AND provider = $2`
-	
+
 	_, err := r.db.Exec(ctx, query, userID, provider)
 	if err != nil {
 		return fmt.Errorf("failed to delete OAuth account: %w", err)
@@ -247,7 +247,7 @@ func (r *OAuthRepository) DeleteByUserAndProvider(ctx context.Context, userID uu
 // CleanupExpiredStates removes expired OAuth states
 func (r *OAuthRepository) CleanupExpiredStates(ctx context.Context) error {
 	query := `DELETE FROM oauth_states WHERE expires_at < NOW()`
-	
+
 	_, err := r.db.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup expired states: %w", err)
