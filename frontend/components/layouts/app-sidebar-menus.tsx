@@ -6,18 +6,18 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
-} from "ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
-import { SidebarMenu, SidebarMenuItem } from "ui/sidebar";
-import { SidebarGroupContent } from "ui/sidebar";
+} from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
+import { SidebarGroupContent } from "@/components/ui/sidebar";
 
-import { SidebarGroup } from "ui/sidebar";
+import { SidebarGroup } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { getShortcutKeyList, Shortcuts } from "lib/keyboard-shortcuts";
+import { getShortcutKeyList, Shortcuts } from "@/lib/keyboard-shortcuts";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MCPIcon } from "ui/mcp-icon";
-import { WriteIcon } from "ui/write-icon";
+import { MCPIcon } from "@/components/icons/mcp-icon";
+import { WriteIcon } from "@/components/icons/write-icon";
 import {
   FolderOpenIcon,
   FolderSearchIcon,
@@ -25,18 +25,18 @@ import {
   Waypoints,
 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { Skeleton } from "ui/skeleton";
-import { useArchives } from "@/hooks/queries/use-archives";
-import { ArchiveDialog } from "../archive-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+// import { useArchives } from "@/hooks/queries/use-archives";
+// import { ArchiveDialog } from "../archive-dialog";
 
 export function AppSidebarMenus() {
   const router = useRouter();
   const t = useTranslations("");
   const { setOpenMobile } = useSidebar();
   const [expandedArchive, setExpandedArchive] = useState(false);
-  const [addArchiveDialogOpen, setAddArchiveDialogOpen] = useState(false);
+  // const [addArchiveDialogOpen, setAddArchiveDialogOpen] = useState(false);
 
-  const { data: archives, isLoading: isLoadingArchives } = useArchives();
+  // const { data: archives, isLoading: isLoadingArchives } = useArchives();
   const toggleArchive = useCallback(() => {
     setExpandedArchive((prev) => !prev);
   }, []);
@@ -114,7 +114,7 @@ export function AppSidebarMenus() {
               </SidebarMenuButton>
               <SidebarMenuAction
                 className="group-hover/archive:opacity-100 opacity-0 transition-opacity"
-                onClick={() => setAddArchiveDialogOpen(true)}
+                // onClick={() => setAddArchiveDialogOpen(true)}
               >
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -127,7 +127,7 @@ export function AppSidebarMenus() {
               </SidebarMenuAction>
             </SidebarMenuItem>
           </Tooltip>
-          {expandedArchive && (
+          {/* {expandedArchive && (
             <>
               <SidebarMenuSub>
                 {isLoadingArchives ? (
@@ -159,13 +159,13 @@ export function AppSidebarMenus() {
                 )}
               </SidebarMenuSub>
             </>
-          )}
+          )} */}
         </SidebarMenu>
       </SidebarGroupContent>
-      <ArchiveDialog
+      {/* <ArchiveDialog
         open={addArchiveDialogOpen}
         onOpenChange={setAddArchiveDialogOpen}
-      />
+      /> */}
     </SidebarGroup>
   );
 }

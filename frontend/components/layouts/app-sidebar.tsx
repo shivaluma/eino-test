@@ -16,7 +16,7 @@ import { useEffect } from "react";
 
 import { AppSidebarMenus } from "@/components/layouts/app-sidebar-menus";
 // import { AppSidebarAgents } from "@/components/layouts/app-sidebar-agents";
-import { AppSidebarThreads } from "@/components/layouts/app-sidebar-threads";
+// import { AppSidebarThreads } from "@/components/layouts/app-sidebar-threads";
 
 import { isShortcutEvent, Shortcuts } from "@/lib/keyboard-shortcuts";
 import { AppSidebarUser } from "@/components/layouts/app-sidebar-user";
@@ -94,7 +94,7 @@ export function AppSidebar({
         <div className="flex flex-col gap-2 overflow-y-auto">
           <AppSidebarMenus />
           {/* <AppSidebarAgents /> */}
-          <AppSidebarThreads />
+          {/* <AppSidebarThreads /> */}
         </div>
       </SidebarContent>
       <SidebarFooter className="flex flex-col items-stretch space-y-2">
