@@ -47,11 +47,11 @@ func main() {
 		FilePath:        getEnvOrDefault("LOG_FILE_PATH", "logs/app.log"),
 		AddTimestamp:    true,
 		AddCaller:       true,
-		PrettyPrint:     cfg.Environment == "development",
+		PrettyPrint:     getEnvOrDefault("ENV", "development") == "development",
 		ErrorStackTrace: true,
 	}
 
-	if cfg.Environment == "development" {
+	if getEnvOrDefault("ENV", "development") == "development" {
 		logConfig.Level = "debug"
 		logConfig.Format = "console"
 		logConfig.PrettyPrint = true
@@ -62,22 +62,22 @@ func main() {
 	}
 
 	// From now on, use structured logging
-	logger.Info("Starting Eino Agent server")
-	logger.WithField("environment", cfg.Environment).Info("Configuration loaded")
+	logger.Logger.Info().Msg("Starting Eino Agent server")
+	logger.Logger.Info().Str("environment", getEnvOrDefault("ENV", "development")).Msg("Configuration loaded")
 
 	db, err := database.New(cfg)
 	if err != nil {
-		logger.WithError(err).Fatal("Failed to connect to database")
+		logger.Logger.Fatal().Err(err).Msg("Failed to connect to database")
 	}
 	defer db.Close()
 
 	// Run database migrations on startup
-	logger.Info("Running database migrations...")
+	logger.Logger.Info().Msg("Running database migrations...")
 	migrator := migrations.NewMigrator(db.Pool, "migrations", cfg)
 	if err := migrator.Migrate(context.Background()); err != nil {
-		logger.WithError(err).Fatal("Failed to run database migrations")
+		logger.Logger.Fatal().Err(err).Msg("Failed to run database migrations")
 	}
-	logger.Info("Database migrations completed successfully")
+	logger.Logger.Info().Msg("Database migrations completed successfully")
 
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
@@ -90,12 +90,12 @@ func main() {
 	factory := providers.NewFactory()
 	provider, err := factory.GetDefaultProvider()
 	if err != nil {
-		logger.WithError(err).Fatal("Failed to get AI provider")
+		logger.Logger.Fatal().Err(err).Msg("Failed to get AI provider")
 	}
 
 	model, err := provider.CreateChatModel(ctx)
 	if err != nil {
-		logger.WithError(err).Fatal("Failed to create chat model")
+		logger.Logger.Fatal().Err(err).Msg("Failed to create chat model")
 	}
 
 	aiService := ai.NewService(model, &ai.Config{
@@ -155,19 +155,19 @@ func main() {
 
 	go func() {
 		if err := e.Start(":" + cfg.Server.Port); err != nil {
-			logger.WithError(err).Error("Server failed to start")
+			logger.Logger.Error().Err(err).Msg("Server failed to start")
 		}
 	}()
 
-	logger.WithField("port", cfg.Server.Port).Info("Server started")
+	logger.Logger.Info().Str("port", cfg.Server.Port).Msg("Server started")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Shutting down server...")
+	logger.Logger.Info().Msg("Shutting down server...")
 	if err := e.Shutdown(context.TODO()); err != nil {
-		logger.WithError(err).Error("Server forced to shutdown")
+		logger.Logger.Error().Err(err).Msg("Server forced to shutdown")
 	}
 }
 
@@ -177,3 +177,4 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
