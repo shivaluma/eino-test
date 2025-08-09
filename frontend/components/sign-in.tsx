@@ -23,7 +23,8 @@ import { GoogleIcon } from "@/components/icons/google-icon";
 import { useTranslations } from "next-intl";
 import { SocialAuthenticationProvider } from "@/types/authentication";
 import { initiateOAuth } from "@/lib/auth/oauth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function SignIn({
   emailAndPasswordEnabled,
@@ -38,11 +39,27 @@ export default function SignIn({
 
   const loginMutation = useLoginMutation();
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   const [formData, setFormData] = useObjectState({
     email: "",
     password: "",
   });
+
+  // Check for OAuth errors in URL parameters
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      setOauthError(decodeURIComponent(error));
+      // Clear the error from URL after a delay
+      setTimeout(() => {
+        setOauthError(null);
+        // Clear URL without refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 5000);
+    }
+  }, [searchParams]);
 
   const emailAndPasswordSignIn = () => {
     loginMutation.mutate({
@@ -54,10 +71,19 @@ export default function SignIn({
   const handleSocialSignIn = async (provider: SocialAuthenticationProvider) => {
     try {
       setIsOAuthLoading(true);
+      setOauthError(null); // Clear any previous errors
+      
+      // Validate provider before initiating OAuth
+      if (!['github', 'google'].includes(provider)) {
+        throw new Error(`Unsupported OAuth provider: ${provider}`);
+      }
+      
       // Initiate OAuth flow - this will redirect to the provider
       initiateOAuth(provider as 'github' | 'google');
+      
     } catch (error) {
       console.error('OAuth initiation failed:', error);
+      setOauthError(error instanceof Error ? error.message : 'OAuth initialization failed');
       setIsOAuthLoading(false);
     }
   };
@@ -73,6 +99,36 @@ export default function SignIn({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col">
+          {/* OAuth Error Display */}
+          {oauthError && (
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div className="text-sm">
+                  <p className="font-medium text-destructive">Authentication Failed</p>
+                  <p className="text-destructive/80">{oauthError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Login Error Display */}
+          {loginMutation.isError && (
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div className="text-sm">
+                  <p className="font-medium text-destructive">Login Failed</p>
+                  <p className="text-destructive/80">{loginMutation.error?.message || 'Please check your credentials and try again.'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {emailAndPasswordEnabled && (
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">

@@ -55,15 +55,65 @@ export const getOAuthUrl = async (provider: OAuthProvider): Promise<string> => {
 };
 
 /**
- * Handle OAuth callback tokens
+ * Handle OAuth callback tokens with security best practices
  */
-export const handleOAuthCallback = (accessToken: string, refreshToken: string): void => {
-  // Store tokens
-  localStorage.setItem('access_token', accessToken);
-  localStorage.setItem('refresh_token', refreshToken);
-  
-  // Redirect to dashboard or home
-  window.location.href = '/';
+export const handleOAuthCallback = async (accessToken: string, refreshToken: string): Promise<void> => {
+  try {
+    // Validate token format before storing
+    if (!isValidJWT(accessToken) || !isValidJWT(refreshToken)) {
+      throw new Error('Invalid token format received');
+    }
+
+    // Store tokens securely
+    localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+    
+    // Set httpOnly cookie for enhanced security (if backend supports it)
+    try {
+      await fetch('/api/auth/set-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accessToken, refreshToken }),
+      });
+    } catch (cookieError) {
+      console.warn('Could not set secure session cookie:', cookieError);
+      // Continue anyway as localStorage is still available
+    }
+
+    // Clear any previous error states
+    localStorage.removeItem('auth_error');
+    
+  } catch (error) {
+    // Clean up on failure
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.setItem('auth_error', error instanceof Error ? error.message : 'Authentication failed');
+    throw error;
+  }
+};
+
+/**
+ * Validate JWT token format
+ */
+const isValidJWT = (token: string): boolean => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    
+    // Validate each part can be decoded
+    parts.forEach(part => {
+      if (!part) throw new Error('Empty JWT part');
+      // Convert URL-safe base64 to regular base64
+      const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+      atob(base64);
+    });
+    
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /**
