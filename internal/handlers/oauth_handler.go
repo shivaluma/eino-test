@@ -9,6 +9,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/shivaluma/eino-agent/internal/auth"
+	"github.com/shivaluma/eino-agent/internal/logger"
 	"github.com/shivaluma/eino-agent/internal/models"
 	"github.com/shivaluma/eino-agent/internal/repository"
 	"golang.org/x/oauth2"
@@ -169,36 +170,71 @@ func (h *OAuthHandler) HandleOAuthCallback(c echo.Context) error {
 		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", *storedState.CodeVerifier))
 	}
 
+	log := logger.WithContext(c.Request().Context())
+	log.Debug().Str("provider", provider).Msg("Exchanging code for tokens")
 	token, err := h.oauthSvc.ExchangeCode(c.Request().Context(), provider, code, opts...)
 	if err != nil {
+		log.Error().Err(err).Str("provider", provider).Msg("Token exchange failed")
 		redirectURL := fmt.Sprintf("%s/auth/sign-in?error=token_exchange_failed", h.frontendURL)
 		return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
+	log.Debug().
+		Str("provider", provider).
+		Bool("has_access_token", token.AccessToken != "").
+		Bool("has_refresh_token", token.RefreshToken != "").
+		Msg("Token exchange successful")
 
 	// Get user info from provider
+	log.Debug().Str("provider", provider).Msg("Getting user info from provider")
 	userInfo, err := h.oauthSvc.GetUserInfo(c.Request().Context(), provider, token)
 	if err != nil {
+		log.Error().Err(err).Str("provider", provider).Msg("Failed to get user info")
 		redirectURL := fmt.Sprintf("%s/auth/sign-in?error=user_info_failed", h.frontendURL)
 		return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
+	log.Debug().
+		Str("provider", provider).
+		Str("user_id", userInfo.ID).
+		Str("email", userInfo.Email).
+		Str("username", userInfo.Username).
+		Msg("User info retrieved")
 
 	// Check if OAuth account exists
+	log.Debug().
+		Str("provider", provider).
+		Str("provider_id", userInfo.ID).
+		Msg("Checking if OAuth account exists")
 	oauthAccount, err := h.oauthRepo.GetByProviderID(c.Request().Context(), provider, userInfo.ID)
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("provider", provider).
+			Str("provider_id", userInfo.ID).
+			Msg("Failed to check OAuth account")
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to check OAuth account",
 		})
 	}
+	log.Debug().Bool("account_exists", oauthAccount != nil).Msg("OAuth account check complete")
 
 	var user *models.User
 
 	if oauthAccount != nil {
 		// Existing OAuth account - get the user
+		log.Debug().Interface("user_id", oauthAccount.UserID).Msg("Existing OAuth account found")
 		user, err = h.userRepo.GetByID(c.Request().Context(), oauthAccount.UserID)
 		if err != nil || user == nil {
+			log.Error().
+				Err(err).
+				Interface("user_id", oauthAccount.UserID).
+				Msg("Failed to get user")
 			redirectURL := fmt.Sprintf("%s/auth/sign-in?error=user_not_found", h.frontendURL)
 			return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 		}
+		log.Debug().
+			Str("username", user.Username).
+			Str("email", user.Email).
+			Msg("User found")
 
 		// Update OAuth account tokens
 		oauthAccount.AccessToken = &token.AccessToken
@@ -215,24 +251,34 @@ func (h *OAuthHandler) HandleOAuthCallback(c echo.Context) error {
 
 		if err := h.oauthRepo.UpdateAccount(c.Request().Context(), oauthAccount); err != nil {
 			// Non-critical error, log but continue
-			fmt.Printf("Failed to update OAuth account: %v\n", err)
+			log.Warn().Err(err).Msg("Failed to update OAuth account")
 		}
 	} else {
 		// New OAuth account - check if user with email exists
+		log.Debug().Str("email", userInfo.Email).Msg("No existing OAuth account - checking for user with email")
 		if userInfo.Email != "" {
-			existingUser, _ := h.userRepo.GetByEmail(c.Request().Context(), userInfo.Email)
+			existingUser, err := h.userRepo.GetByEmail(c.Request().Context(), userInfo.Email)
+			if err != nil {
+				log.Debug().Err(err).Msg("Error checking for existing user by email")
+			}
 			if existingUser != nil {
 				// Link OAuth account to existing user
+				log.Debug().
+					Interface("user_id", existingUser.ID).
+					Str("username", existingUser.Username).
+					Msg("Found existing user with email")
 				user = existingUser
 			}
 		}
 
 		if user == nil {
 			// Create new user
+			log.Debug().Msg("Creating new user")
 			username := userInfo.Username
 			if username == "" {
 				username = strings.Split(userInfo.Email, "@")[0]
 			}
+			log.Debug().Str("username", username).Msg("Generated username")
 
 			// Ensure unique username
 			baseUsername := username
@@ -253,10 +299,18 @@ func (h *OAuthHandler) HandleOAuthCallback(c echo.Context) error {
 				OAuthEmail:      &userInfo.Email,
 			}
 
+			log.Debug().
+				Str("username", user.Username).
+				Str("email", user.Email).
+				Str("provider", provider).
+				Str("provider_id", userInfo.ID).
+				Msg("Creating user")
 			if err := h.userRepo.Create(c.Request().Context(), user); err != nil {
+				log.Error().Err(err).Msg("Failed to create user")
 				redirectURL := fmt.Sprintf("%s/auth/sign-in?error=user_creation_failed", h.frontendURL)
 				return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 			}
+			log.Debug().Interface("user_id", user.ID).Msg("User created successfully")
 		}
 
 		// Create OAuth account
@@ -279,9 +333,16 @@ func (h *OAuthHandler) HandleOAuthCallback(c echo.Context) error {
 			oauthAccount.TokenExpiresAt = &token.Expiry
 		}
 
+		log.Debug().
+			Interface("user_id", user.ID).
+			Str("provider", provider).
+			Str("provider_id", userInfo.ID).
+			Msg("Creating OAuth account")
 		if err := h.oauthRepo.CreateAccount(c.Request().Context(), oauthAccount); err != nil {
 			// Non-critical error if user was created successfully
-			fmt.Printf("Failed to create OAuth account: %v\n", err)
+			log.Warn().Err(err).Msg("Failed to create OAuth account")
+		} else {
+			log.Debug().Msg("OAuth account created successfully")
 		}
 	}
 

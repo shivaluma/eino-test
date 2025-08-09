@@ -14,8 +14,17 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 	"github.com/shivaluma/eino-agent/config"
 )
+
+var logger zerolog.Logger
+
+func init() {
+	// Initialize a simple console logger for migrations
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	logger = zerolog.New(output).With().Timestamp().Logger()
+}
 
 // Migration represents a single database migration
 type Migration struct {
@@ -148,7 +157,7 @@ func (m *Migrator) InitializeMigrationSystem(ctx context.Context) error {
 			return fmt.Errorf("failed to initialize migration system: %w", err)
 		}
 
-		fmt.Println("✓ Migration system initialized")
+		logger.Info().Msg("✓ Migration system initialized")
 	}
 
 	return nil
@@ -256,7 +265,7 @@ func (m *Migrator) ApplyMigration(ctx context.Context, migration *Migration) err
 		// Record the failed migration
 		recordErr := m.recordMigrationExecution(ctx, migration, executionTime, false, err.Error())
 		if recordErr != nil {
-			fmt.Printf("Warning: Failed to record migration failure: %v\n", recordErr)
+			logger.Warn().Err(recordErr).Msg("Failed to record migration failure")
 		}
 		return fmt.Errorf("failed to apply migration %d: %w", migration.Version, err)
 	}
@@ -272,8 +281,11 @@ func (m *Migrator) ApplyMigration(ctx context.Context, migration *Migration) err
 		return fmt.Errorf("failed to commit migration transaction: %w", err)
 	}
 
-	fmt.Printf("✓ Applied migration %d: %s (%.2fs)\n",
-		migration.Version, migration.Filename, time.Since(startTime).Seconds())
+	logger.Info().
+		Int64("version", migration.Version).
+		Str("filename", migration.Filename).
+		Float64("duration_seconds", time.Since(startTime).Seconds()).
+		Msg("✓ Applied migration")
 
 	return nil
 }
@@ -309,7 +321,7 @@ func (m *Migrator) Migrate(ctx context.Context) error {
 	}
 
 	if len(migrations) == 0 {
-		fmt.Println("No migrations found")
+		logger.Info().Msg("No migrations found")
 		return nil
 	}
 
@@ -341,8 +353,14 @@ func (m *Migrator) Migrate(ctx context.Context) error {
 				}
 				continue // Skip already applied migrations
 			} else {
-				fmt.Printf("⚠ Migration %d previously failed: %s\n", migration.Version, applied.ErrorMessage)
-				fmt.Printf("Retrying migration %d: %s\n", migration.Version, migration.Filename)
+				logger.Warn().
+					Int64("version", migration.Version).
+					Str("error", applied.ErrorMessage).
+					Msg("⚠ Migration previously failed")
+				logger.Info().
+					Int64("version", migration.Version).
+					Str("filename", migration.Filename).
+					Msg("Retrying migration")
 			}
 		}
 
@@ -354,9 +372,9 @@ func (m *Migrator) Migrate(ctx context.Context) error {
 	}
 
 	if pendingCount == 0 {
-		fmt.Println("✓ Database is up to date")
+		logger.Info().Msg("✓ Database is up to date")
 	} else {
-		fmt.Printf("✓ Applied %d migrations\n", pendingCount)
+		logger.Info().Int("count", pendingCount).Msg("✓ Applied migrations")
 	}
 
 	return nil
@@ -387,17 +405,24 @@ func (m *Migrator) Status(ctx context.Context) error {
 		return err
 	}
 
-	fmt.Printf("Current migration version: %d\n", currentVersion)
-	fmt.Printf("Total migrations found: %d\n", len(migrations)-1) // -1 for system migration
+	logger.Info().
+		Int64("current_version", currentVersion).
+		Int("total_migrations", len(migrations)-1).
+		Msg("Migration status")
 
 	if len(appliedMigrations) > 0 {
-		fmt.Println("\nApplied migrations:")
+		logger.Info().Msg("Applied migrations:")
 		for _, applied := range appliedMigrations {
 			status := "✓"
 			if !applied.Success {
 				status = "✗"
 			}
-			fmt.Printf("  %s %d: %s (%s)\n", status, applied.Version, applied.Filename, applied.AppliedAt.Format("2006-01-02 15:04:05"))
+			logger.Info().
+				Str("status", status).
+				Int64("version", applied.Version).
+				Str("filename", applied.Filename).
+				Str("applied_at", applied.AppliedAt.Format("2006-01-02 15:04:05")).
+				Msg("")
 		}
 	}
 
@@ -420,9 +445,13 @@ func (m *Migrator) Status(ctx context.Context) error {
 	}
 
 	if len(pendingMigrations) > 0 {
-		fmt.Println("\nPending migrations:")
+		logger.Info().Msg("Pending migrations:")
 		for _, migration := range pendingMigrations {
-			fmt.Printf("  ○ %d: %s\n", migration.Version, migration.Filename)
+			logger.Info().
+				Str("status", "○").
+				Int64("version", migration.Version).
+				Str("filename", migration.Filename).
+				Msg("")
 		}
 	}
 
@@ -438,7 +467,7 @@ func (m *Migrator) Rollback(ctx context.Context) error {
 	}
 
 	if currentVersion == 0 {
-		fmt.Println("No migrations to rollback")
+		logger.Info().Msg("No migrations to rollback")
 		return nil
 	}
 
@@ -459,7 +488,10 @@ func (m *Migrator) Rollback(ctx context.Context) error {
 		return fmt.Errorf("migration %d (%s) does not have rollback SQL", currentVersion, filename)
 	}
 
-	fmt.Printf("Rolling back migration %d: %s\n", currentVersion, filename)
+	logger.Info().
+		Int64("version", currentVersion).
+		Str("filename", filename).
+		Msg("Rolling back migration")
 
 	// Execute rollback in transaction
 	tx, err := m.db.Begin(ctx)
@@ -487,7 +519,9 @@ func (m *Migrator) Rollback(ctx context.Context) error {
 		return fmt.Errorf("failed to commit rollback transaction: %w", err)
 	}
 
-	fmt.Printf("✓ Successfully rolled back migration %d\n", currentVersion)
+	logger.Info().
+		Int64("version", currentVersion).
+		Msg("✓ Successfully rolled back migration")
 	return nil
 }
 
@@ -499,7 +533,10 @@ func (m *Migrator) RollbackTo(ctx context.Context, targetVersion int64) error {
 	}
 
 	if targetVersion >= currentVersion {
-		fmt.Printf("Target version %d is not lower than current version %d\n", targetVersion, currentVersion)
+		logger.Info().
+			Int64("target_version", targetVersion).
+			Int64("current_version", currentVersion).
+			Msg("Target version is not lower than current version")
 		return nil
 	}
 
@@ -549,15 +586,21 @@ func (m *Migrator) RollbackTo(ctx context.Context, targetVersion int64) error {
 	}
 
 	if len(migrationsToRollback) == 0 {
-		fmt.Println("No migrations to rollback")
+		logger.Info().Msg("No migrations to rollback")
 		return nil
 	}
 
-	fmt.Printf("Rolling back %d migrations to version %d\n", len(migrationsToRollback), targetVersion)
+	logger.Info().
+		Int("count", len(migrationsToRollback)).
+		Int64("target_version", targetVersion).
+		Msg("Rolling back migrations")
 
 	// Execute rollbacks in reverse order
 	for _, migration := range migrationsToRollback {
-		fmt.Printf("Rolling back migration %d: %s\n", migration.Version, migration.Filename)
+		logger.Info().
+			Int64("version", migration.Version).
+			Str("filename", migration.Filename).
+			Msg("Rolling back migration")
 
 		tx, err := m.db.Begin(ctx)
 		if err != nil {
@@ -585,7 +628,9 @@ func (m *Migrator) RollbackTo(ctx context.Context, targetVersion int64) error {
 			return fmt.Errorf("failed to commit rollback transaction for migration %d: %w", migration.Version, err)
 		}
 
-		fmt.Printf("✓ Rolled back migration %d\n", migration.Version)
+		logger.Info().
+			Int64("version", migration.Version).
+			Msg("✓ Rolled back migration")
 	}
 
 	return nil
@@ -611,7 +656,7 @@ func (m *Migrator) Validate(ctx context.Context) error {
 		migrationMap[migration.Version] = migration
 	}
 
-	fmt.Println("Validating migration checksums...")
+	logger.Info().Msg("Validating migration checksums...")
 
 	var errors []string
 	for _, applied := range appliedMigrations {
@@ -631,14 +676,14 @@ func (m *Migrator) Validate(ctx context.Context) error {
 	}
 
 	if len(errors) > 0 {
-		fmt.Println("❌ Migration validation failed:")
+		logger.Error().Msg("❌ Migration validation failed:")
 		for _, err := range errors {
-			fmt.Printf("  • %s\n", err)
+			logger.Error().Str("error", err).Msg("•")
 		}
 		return fmt.Errorf("migration validation failed with %d errors", len(errors))
 	}
 
-	fmt.Println("✓ All migrations validated successfully")
+	logger.Info().Msg("✓ All migrations validated successfully")
 	return nil
 }
 
@@ -648,7 +693,7 @@ func (m *Migrator) Reset(ctx context.Context, confirmed bool) error {
 		return fmt.Errorf("reset operation requires explicit confirmation. This will DROP ALL TABLES")
 	}
 
-	fmt.Println("⚠ RESETTING DATABASE - This will drop all tables and data!")
+	logger.Warn().Msg("⚠ RESETTING DATABASE - This will drop all tables and data!")
 
 	// Drop all tables
 	_, err := m.db.Exec(ctx, `
@@ -660,8 +705,8 @@ func (m *Migrator) Reset(ctx context.Context, confirmed bool) error {
 		return fmt.Errorf("failed to reset database: %w", err)
 	}
 
-	fmt.Println("✓ Database reset complete")
-	fmt.Println("Reapplying all migrations...")
+	logger.Info().Msg("✓ Database reset complete")
+	logger.Info().Msg("Reapplying all migrations...")
 
 	// Reapply all migrations
 	return m.Migrate(ctx)

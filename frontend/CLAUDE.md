@@ -28,10 +28,10 @@
 - **Animations**: Framer Motion 12.23.10
 
 ### Backend
-- **Runtime**: Node.js >=18 with Edge Runtime support
-- **Database**: PostgreSQL with Drizzle ORM 0.41.0
-- **Authentication**: better-auth 1.3.4 with OAuth support (Google, GitHub)
-- **AI Integration**: Vercel AI SDK 4.3.19
+- **Runtime**: Golang 1.24.5
+- **Database**: PostgreSQL with pgx driver
+- **Authentication**: oauth golang package
+- **AI Integration**: cloudwego/eino
 - **Caching**: Memory and Redis cache implementations
 - **File Processing**: Custom code execution environment with workers
 

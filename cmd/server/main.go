@@ -13,6 +13,7 @@ import (
 	"github.com/shivaluma/eino-agent/internal/auth"
 	"github.com/shivaluma/eino-agent/internal/database"
 	"github.com/shivaluma/eino-agent/internal/handlers"
+	"github.com/shivaluma/eino-agent/internal/logger"
 	"github.com/shivaluma/eino-agent/internal/middleware"
 	"github.com/shivaluma/eino-agent/internal/migrations"
 	"github.com/shivaluma/eino-agent/internal/repository"
@@ -38,19 +39,45 @@ func main() {
 
 	cfg := config.Load()
 
+	// Initialize logger based on environment
+	logConfig := &logger.Config{
+		Level:           getEnvOrDefault("LOG_LEVEL", "info"),
+		Format:          getEnvOrDefault("LOG_FORMAT", "json"),
+		Output:          getEnvOrDefault("LOG_OUTPUT", "stdout"),
+		FilePath:        getEnvOrDefault("LOG_FILE_PATH", "logs/app.log"),
+		AddTimestamp:    true,
+		AddCaller:       true,
+		PrettyPrint:     cfg.Environment == "development",
+		ErrorStackTrace: true,
+	}
+
+	if cfg.Environment == "development" {
+		logConfig.Level = "debug"
+		logConfig.Format = "console"
+		logConfig.PrettyPrint = true
+	}
+
+	if err := logger.Init(logConfig); err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+
+	// From now on, use structured logging
+	logger.Info("Starting Eino Agent server")
+	logger.WithField("environment", cfg.Environment).Info("Configuration loaded")
+
 	db, err := database.New(cfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logger.WithError(err).Fatal("Failed to connect to database")
 	}
 	defer db.Close()
 
 	// Run database migrations on startup
-	log.Println("Running database migrations...")
+	logger.Info("Running database migrations...")
 	migrator := migrations.NewMigrator(db.Pool, "migrations", cfg)
 	if err := migrator.Migrate(context.Background()); err != nil {
-		log.Fatalf("Failed to run database migrations: %v", err)
+		logger.WithError(err).Fatal("Failed to run database migrations")
 	}
-	log.Println("Database migrations completed successfully")
+	logger.Info("Database migrations completed successfully")
 
 	userRepo := repository.NewUserRepository(db)
 	convRepo := repository.NewConversationRepository(db)
@@ -63,12 +90,12 @@ func main() {
 	factory := providers.NewFactory()
 	provider, err := factory.GetDefaultProvider()
 	if err != nil {
-		log.Fatalf("Failed to get AI provider: %v", err)
+		logger.WithError(err).Fatal("Failed to get AI provider")
 	}
 
 	model, err := provider.CreateChatModel(ctx)
 	if err != nil {
-		log.Fatalf("Failed to create chat model: %v", err)
+		logger.WithError(err).Fatal("Failed to create chat model")
 	}
 
 	aiService := ai.NewService(model, &ai.Config{
@@ -83,7 +110,11 @@ func main() {
 
 	e.Validator = &CustomValidator{validator: validator.New()}
 
-	e.Use(echomiddleware.Logger())
+	// Add request ID middleware first
+	e.Use(middleware.RequestIDMiddleware())
+	// Replace Echo's logger with our structured logger
+	e.Use(middleware.LoggingMiddleware())
+	e.Use(middleware.ErrorHandlingMiddleware())
 	e.Use(echomiddleware.Recover())
 	e.Use(middleware.CORSMiddleware())
 
@@ -124,18 +155,25 @@ func main() {
 
 	go func() {
 		if err := e.Start(":" + cfg.Server.Port); err != nil {
-			log.Printf("Server failed to start: %v", err)
+			logger.WithError(err).Error("Server failed to start")
 		}
 	}()
 
-	log.Printf("Server started on port %s", cfg.Server.Port)
+	logger.WithField("port", cfg.Server.Port).Info("Server started")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	logger.Info("Shutting down server...")
 	if err := e.Shutdown(context.TODO()); err != nil {
-		log.Printf("Server forced to shutdown: %v", err)
+		logger.WithError(err).Error("Server forced to shutdown")
 	}
 }
+
+// getEnvOrDefault gets environment variable with a default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
