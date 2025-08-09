@@ -59,4 +59,8 @@ export const authApi = {
   refreshToken: async (data: RefreshTokenRequest) => {
     return apiClient.post<RefreshTokenResponse>('/api/v1/token/refresh', data);
   },
+
+  me: async () => {
+    return apiClient.auth.get<User>('/api/v1/auth/me');
+  },
 };

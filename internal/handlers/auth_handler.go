@@ -159,6 +159,28 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		})
 	}
 
+	// Set HttpOnly cookies for access and refresh tokens
+	// Access token as a session cookie (expires with browser session)
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   c.IsTLS(),
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Refresh token cookie with expiration
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   c.IsTLS(),
+		SameSite: http.SameSiteLaxMode,
+		Expires:  refreshTokenRecord.ExpiresAt,
+	})
+
 	return c.JSON(http.StatusOK, models.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -237,8 +259,59 @@ func (h *AuthHandler) RefreshToken(c echo.Context) error {
 		})
 	}
 
+	// Update cookies on refresh
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   c.IsTLS(),
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    newRefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   c.IsTLS(),
+		SameSite: http.SameSiteLaxMode,
+		Expires:  newRefreshTokenRecord.ExpiresAt,
+	})
+
 	return c.JSON(http.StatusOK, models.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: newRefreshToken,
+	})
+}
+
+// Me returns the current authenticated user's profile.
+// Requires AuthMiddleware to set user context from a valid Bearer token.
+func (h *AuthHandler) Me(c echo.Context) error {
+	claims, err := h.authSvc.GetUserClaimsFromContext(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Unauthorized",
+		})
+	}
+
+	user, err := h.userRepo.GetByID(c.Request().Context(), claims.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Internal server error",
+		})
+	}
+	if user == nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "User not found",
+		})
+	}
+
+	return c.JSON(http.StatusOK, models.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	})
 }

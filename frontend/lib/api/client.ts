@@ -14,7 +14,7 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
   try {
     const data = await response.json();
     return { data };
-  } catch (error) {
+  } catch (_) {
     return { error: 'Failed to parse response' };
   }
 };
@@ -47,6 +47,7 @@ const request = async <T>(
 
     const response = await fetch(`${getBaseURL()}${endpoint}`, {
       headers,
+      credentials: 'include',
       ...options,
     });
 

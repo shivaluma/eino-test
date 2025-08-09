@@ -60,3 +60,8 @@ export function parseEnvBoolean(value: string | boolean | undefined): boolean {
   }
   return false;
 }
+
+
+export function capitalizeFirstLetter(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}

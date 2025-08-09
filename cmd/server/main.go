@@ -133,6 +133,9 @@ func main() {
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware(authSvc))
 
+	// Protected auth/user routes
+	protected.GET("/auth/me", authHandler.Me)
+
 	// Protected OAuth routes
 	protected.GET("/auth/oauth/linked", oauthHandler.GetLinkedAccounts)
 	protected.POST("/auth/oauth/:provider/link", oauthHandler.LinkOAuthAccount)

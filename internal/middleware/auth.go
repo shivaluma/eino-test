@@ -60,9 +60,16 @@ func AuthMiddleware(authSvc *auth.Service) echo.MiddlewareFunc {
 func CORSMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			c.Response().Header().Set("Access-Control-Allow-Origin", "*")
+			// In production, consider restricting origin. For now, reflect request origin for cookies.
+			origin := c.Request().Header.Get("Origin")
+			if origin == "" {
+				origin = "*"
+			}
+			c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+			c.Response().Header().Set("Vary", "Origin")
 			c.Response().Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			c.Response().Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
 
 			if c.Request().Method == "OPTIONS" {
 				return c.NoContent(http.StatusOK)

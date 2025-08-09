@@ -6,15 +6,10 @@ import { toast } from 'sonner';
 const STORAGE_KEY = 'auth_tokens';
 const USER_STORAGE_KEY = 'auth_user';
 
-const saveAuthData = (tokens: LoginResponse) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-    }));
-    if (tokens.user) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(tokens.user));
-    }
+const saveAuthData = (_tokens: LoginResponse) => {
+  // Tokens are set by HttpOnly cookies; optionally cache user for UI responsiveness
+  if (typeof window !== 'undefined' && _tokens.user) {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(_tokens.user));
   }
 };
 
@@ -132,6 +127,7 @@ export const useLoginMutation = () => {
       saveAuthData(data);
       toast.success('Successfully logged in!');
       router.push('/');
+      router.refresh();
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Invalid email or password');

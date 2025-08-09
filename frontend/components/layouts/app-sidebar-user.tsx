@@ -12,9 +12,9 @@ import {
   DropdownMenuPortal,
   DropdownMenuSubContent,
   DropdownMenuCheckboxItem,
-} from "ui/dropdown-menu";
-import { AvatarFallback, AvatarImage, Avatar } from "ui/avatar";
-import { SidebarMenuButton, SidebarMenuItem, SidebarMenu } from "ui/sidebar";
+} from "@/components/ui/dropdown-menu";
+import { AvatarFallback, AvatarImage, Avatar } from "@/components/ui/avatar";
+import { SidebarMenuButton, SidebarMenuItem, SidebarMenu } from "@/components/ui/sidebar";
 import {
   ChevronsUpDown,
   Command,
@@ -27,47 +27,42 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { appStore } from "@/app/store";
+// import { appStore } from "@/app/store";
 import { BASE_THEMES, COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "lib/const";
-import { capitalizeFirstLetter, cn } from "lib/utils";
-import { authClient } from "auth/client";
+import { capitalizeFirstLetter, cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import useSWR from "swr";
+// import useSWR from "swr";
 import { getLocaleAction } from "@/i18n/get-locale";
 import { useCallback } from "react";
-import { GithubIcon } from "ui/github-icon";
-import { DiscordIcon } from "ui/discord-icon";
+import { GithubIcon } from "@/components/icons/github-icon";
+// import { DiscordIcon } from "@/components/ui/discord-icon";
 import { useThemeStyle } from "@/hooks/use-theme-style";
-import { Session, User } from "better-auth";
+import type { UISessionUser } from "@/lib/auth/server";
 
-export function AppSidebarUser({
-  session,
-}: { session?: { session: Session; user: User } }) {
-  const appStoreMutate = appStore((state) => state.mutate);
+export function AppSidebarUser({ user }: { user?: UISessionUser }) {
+  // const appStoreMutate = appStore((state) => state.mutate);
   const t = useTranslations("Layout");
 
-  const user = session?.user;
-
   const logout = () => {
-    authClient.signOut().finally(() => {
-      window.location.href = "/sign-in";
-    });
+    // authClient.signOut().finally(() => {
+    //   window.location.href = "/sign-in";
+    // });
   };
 
-  useSWR(
-    "/session-update",
-    () =>
-      authClient.getSession().then(() => {
-        console.log(`session-update: ${new Date().toISOString()}`);
-      }),
-    {
-      refreshIntervalOnFocus: false,
-      focusThrottleInterval: 1000 * 60 * 5,
-      revalidateOnFocus: false,
-      refreshWhenHidden: true,
-      refreshInterval: 1000 * 60 * 5,
-    },
-  );
+  // useSWR(
+  //   "/session-update",
+  //   () =>
+  //     authClient.getSession().then(() => {
+  //       console.log(`session-update: ${new Date().toISOString()}`);
+  //     }),
+  //   {
+  //     refreshIntervalOnFocus: false,
+  //     focusThrottleInterval: 1000 * 60 * 5,
+  //     revalidateOnFocus: false,
+  //     refreshWhenHidden: true,
+  //     refreshInterval: 1000 * 60 * 5,
+  //   },
+  // );
 
   return (
     <SidebarMenu>
@@ -118,7 +113,7 @@ export function AppSidebarUser({
 
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => appStoreMutate({ openChatPreferences: true })}
+              // onClick={() => appStoreMutate({ openChatPreferences: true })}
             >
               <Settings2 className="size-4 text-foreground" />
               <span>{t("chatPreferences")}</span>
@@ -128,7 +123,7 @@ export function AppSidebarUser({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => appStoreMutate({ openShortcutsPopup: true })}
+              // onClick={() => appStoreMutate({ openShortcutsPopup: true })}
             >
               <Command className="size-4 text-foreground" />
               <span>{t("keyboardShortcuts")}</span>
@@ -143,14 +138,6 @@ export function AppSidebarUser({
             >
               <GithubIcon className="size-4 fill-foreground" />
               <span>{t("reportAnIssue")}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                window.open("https://discord.gg/gCRu69Upnp", "_blank");
-              }}
-            >
-              <DiscordIcon className="size-4 fill-foreground" />
-              <span>{t("joinCommunity")}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="cursor-pointer">
@@ -226,7 +213,7 @@ function SelectTheme() {
               <DropdownMenuCheckboxItem
                 key={t}
                 checked={themeStyle === t}
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent<HTMLDivElement>) => {
                   e.preventDefault();
                   setThemeStyle(t);
                 }}
@@ -244,10 +231,10 @@ function SelectTheme() {
 
 function SelectLanguage() {
   const t = useTranslations("Layout");
-  const { data: currentLocale } = useSWR(COOKIE_KEY_LOCALE, getLocaleAction, {
-    fallbackData: SUPPORTED_LOCALES[0].code,
-    revalidateOnFocus: false,
-  });
+  // const { data: currentLocale } = useSWR(COOKIE_KEY_LOCALE, getLocaleAction, {
+  //   fallbackData: SUPPORTED_LOCALES[0].code,
+  //   revalidateOnFocus: false,
+  // });
   const handleOnChange = useCallback((locale: string) => {
     document.cookie = `${COOKIE_KEY_LOCALE}=${locale}; path=/;`;
     window.location.reload();
@@ -267,9 +254,10 @@ function SelectLanguage() {
           {SUPPORTED_LOCALES.map((locale) => (
             <DropdownMenuCheckboxItem
               key={locale.code}
-              checked={locale.code === currentLocale}
+              // checked={locale.code === currentLocale}
               onCheckedChange={() =>
-                locale.code !== currentLocale && handleOnChange(locale.code)
+                // locale.code !== currentLocale && 
+                handleOnChange(locale.code)
               }
             >
               {locale.name}
