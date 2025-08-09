@@ -54,17 +54,14 @@ export function AppSidebarUser() {
 
   const logout = async () => {
     try {
-      await authApi.logout();
-      contextLogout(); // Use context logout instead of clearUserData
-      router.push('/sign-in');
-      router.refresh();
+      // Use the context logout - it handles the API call AND redirect
+      await contextLogout();
     } catch (error) {
       console.error('Logout error:', error);
-      contextLogout(); // Fallback to context logout
-      router.push('/sign-in');
-      toast.error('Logged out (with errors)');
+      // Context logout already handles fallback
+      toast.error('Logout failed');
     }
-  };
+  };;
 
   return (
     <SidebarMenu>

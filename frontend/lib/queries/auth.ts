@@ -20,15 +20,15 @@ export function useSessionQuery() {
     queryKey: authQueryKeys.session,
     queryFn: async (): Promise<User> => {
       const response = await authApi.me();
-      
+
       if (response.error) {
         throw new Error(response.error);
       }
-      
+
       if (!response.data) {
         throw new Error('No user data received');
       }
-      
+
       return response.data;
     },
     staleTime: 4 * 60 * 1000, // 4 minutes - refresh before token expiry
@@ -61,8 +61,18 @@ export function useSessionQuery() {
   React.useEffect(() => {
     if (query.error) {
       console.error('Session validation failed:', query.error);
-      // If session validation fails, logout the user
-      logout();
+
+      // Only logout if it's an authentication error (401/403)
+      const errorMessage = query.error.message?.toLowerCase() || '';
+      const isAuthError = errorMessage.includes('401') ||
+        errorMessage.includes('403') ||
+        errorMessage.includes('unauthenticated') ||
+        errorMessage.includes('unauthorized');
+
+      if (isAuthError) {
+        console.log('Authentication failed, logging out...');
+        logout();
+      }
     }
   }, [query.error, logout]);
 
@@ -77,11 +87,11 @@ export function useTokenRefresh() {
   return useMutation({
     mutationFn: async () => {
       const response = await authApi.refreshToken();
-      
+
       if (response.error) {
         throw new Error(response.error);
       }
-      
+
       return response.data;
     },
     onSuccess: () => {
@@ -101,7 +111,7 @@ export function useTokenRefresh() {
 // Hook for proactive token refresh (called before expiry)
 export function useProactiveTokenRefresh() {
   const tokenRefresh = useTokenRefresh();
-  
+
   // Function to trigger proactive refresh
   const refreshToken = () => {
     if (!tokenRefresh.isPending) {
@@ -120,11 +130,11 @@ export function useProactiveTokenRefresh() {
 // Session management utilities
 export function useSessionUtils() {
   const queryClient = useQueryClient();
-  
+
   const invalidateSession = () => {
     queryClient.invalidateQueries({ queryKey: authQueryKeys.session });
   };
-  
+
   const clearSessionCache = () => {
     queryClient.removeQueries({ queryKey: authQueryKeys.session });
     queryClient.removeQueries({ queryKey: authQueryKeys.user });
@@ -140,7 +150,7 @@ export function useSessionUtils() {
 export function useAuthSession() {
   const sessionQuery = useSessionQuery();
   const tokenRefresh = useProactiveTokenRefresh();
-  
+
   // Auto-refresh token 2 minutes before it would expire
   // Assuming 15-minute access token lifetime
   React.useEffect(() => {
@@ -149,7 +159,7 @@ export function useAuthSession() {
         console.log('Auto-refreshing token...');
         tokenRefresh.refreshToken();
       }, 13 * 60 * 1000); // 13 minutes
-      
+
       return () => clearInterval(refreshInterval);
     }
   }, [sessionQuery.data, sessionQuery.error, tokenRefresh.refreshToken]);

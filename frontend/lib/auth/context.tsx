@@ -59,10 +59,8 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       clearUserData();
       setUser(null);
       
-      // Show success message
       toast.success('Successfully logged out');
       
-      // Redirect to sign-in
       router.push('/sign-in');
       router.refresh();
       
