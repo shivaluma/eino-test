@@ -157,3 +157,26 @@ func (r *UserRepository) CleanupExpiredTokens(ctx context.Context) error {
 	_, err := r.db.Pool.Exec(ctx, query)
 	return err
 }
+
+// BeginTx starts a new database transaction
+func (r *UserRepository) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.db.Pool.Begin(ctx)
+}
+
+// CreateTx creates a user within an existing transaction
+func (r *UserRepository) CreateTx(ctx context.Context, tx pgx.Tx, user *models.User) error {
+	query := `
+		INSERT INTO users (username, email, password_hash, oauth_provider, oauth_provider_id, avatar_url, oauth_email)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, created_at, updated_at`
+
+	return tx.QueryRow(ctx, query,
+		user.Username,
+		user.Email,
+		user.PasswordHash,
+		user.OAuthProvider,
+		user.OAuthProviderID,
+		user.AvatarURL,
+		user.OAuthEmail,
+	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+}

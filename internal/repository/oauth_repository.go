@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shivaluma/eino-agent/internal/models"
 )
@@ -250,6 +251,37 @@ func (r *OAuthRepository) CleanupExpiredStates(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup expired states: %w", err)
+	}
+
+	return nil
+}
+
+// CreateAccountTx creates a new OAuth account within an existing transaction
+func (r *OAuthRepository) CreateAccountTx(ctx context.Context, tx pgx.Tx, account *models.OAuthAccount) error {
+	query := `
+		INSERT INTO oauth_accounts (
+			user_id, provider, provider_account_id, provider_email, 
+			provider_username, provider_avatar_url, access_token, 
+			refresh_token, token_expires_at, raw_user_data
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id, created_at, updated_at
+	`
+
+	err := tx.QueryRow(ctx, query,
+		account.UserID,
+		account.Provider,
+		account.ProviderAccountID,
+		account.ProviderEmail,
+		account.ProviderUsername,
+		account.ProviderAvatarURL,
+		account.AccessToken,
+		account.RefreshToken,
+		account.TokenExpiresAt,
+		account.RawUserData,
+	).Scan(&account.ID, &account.CreatedAt, &account.UpdatedAt)
+
+	if err != nil {
+		return fmt.Errorf("failed to create OAuth account: %w", err)
 	}
 
 	return nil
