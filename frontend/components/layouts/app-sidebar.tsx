@@ -22,11 +22,8 @@ import { isShortcutEvent, Shortcuts } from "@/lib/keyboard-shortcuts";
 import { AppSidebarUser } from "@/components/layouts/app-sidebar-user";
 import { PanelLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { SessionUser } from "@/lib/auth/server";
 
-export function AppSidebar({
-  session,
-}: { session?: { session: { user: SessionUser }; user: SessionUser } }) {
+export function AppSidebar() {
   const { toggleSidebar, setOpenMobile } = useSidebar();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -98,7 +95,7 @@ export function AppSidebar({
         </div>
       </SidebarContent>
       <SidebarFooter className="flex flex-col items-stretch space-y-2">
-        <AppSidebarUser user={session?.user} />
+        <AppSidebarUser />
       </SidebarFooter>
     </Sidebar>
   );

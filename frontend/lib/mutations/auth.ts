@@ -12,7 +12,7 @@ const saveUserData = (user: User | undefined) => {
   }
 };
 
-const clearUserData = () => {
+export const clearUserData = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(USER_STORAGE_KEY);
   }

@@ -6,6 +6,7 @@ import {
   ThemeStyleProvider,
 } from "@/components/layouts/theme-provider";
 import { QueryProvider } from "@/components/layouts/query-provider";
+import { AuthProvider } from "@/lib/auth/context";
 import { Toaster } from "@/components/ui/sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
@@ -47,12 +48,14 @@ export default async function RootLayout({
         >
           <ThemeStyleProvider>
             <QueryProvider>
-              <NextIntlClientProvider>
-                <div id="root">
-                  {children}
-                  <Toaster richColors />
-                </div>
-              </NextIntlClientProvider>
+              <AuthProvider>
+                <NextIntlClientProvider>
+                  <div id="root">
+                    {children}
+                    <Toaster richColors />
+                  </div>
+                </NextIntlClientProvider>
+              </AuthProvider>
             </QueryProvider>
           </ThemeStyleProvider>
         </ThemeProvider>

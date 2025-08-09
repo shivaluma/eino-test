@@ -31,38 +31,40 @@ import { useTheme } from "next-themes";
 import { BASE_THEMES, COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "lib/const";
 import { capitalizeFirstLetter, cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-// import useSWR from "swr";
 import { getLocaleAction } from "@/i18n/get-locale";
 import { useCallback } from "react";
 import { GithubIcon } from "@/components/icons/github-icon";
 // import { DiscordIcon } from "@/components/ui/discord-icon";
 import { useThemeStyle } from "@/hooks/use-theme-style";
-import type { SessionUser } from "@/lib/auth/server";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { authApi } from "@/lib/api/auth";
+import { clearUserData } from "@/lib/mutations/auth";
+import { useAuth } from "@/lib/auth/context";
+import { useAuthSession } from "@/lib/queries/auth";
 
-export function AppSidebarUser({ user }: { user?: SessionUser }) {
+export function AppSidebarUser() {
   // const appStoreMutate = appStore((state) => state.mutate);
   const t = useTranslations("Layout");
+  const router = useRouter();
+  const { user, logout: contextLogout } = useAuth();
+  
+  // Continuous session checking with automatic token refresh
+  useAuthSession();
 
-  const logout = () => {
-    // authClient.signOut().finally(() => {
-    //   window.location.href = "/sign-in";
-    // });
+  const logout = async () => {
+    try {
+      await authApi.logout();
+      contextLogout(); // Use context logout instead of clearUserData
+      router.push('/sign-in');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+      contextLogout(); // Fallback to context logout
+      router.push('/sign-in');
+      toast.error('Logged out (with errors)');
+    }
   };
-
-  // useSWR(
-  //   "/session-update",
-  //   () =>
-  //     authClient.getSession().then(() => {
-  //       console.log(`session-update: ${new Date().toISOString()}`);
-  //     }),
-  //   {
-  //     refreshIntervalOnFocus: false,
-  //     focusThrottleInterval: 1000 * 60 * 5,
-  //     revalidateOnFocus: false,
-  //     refreshWhenHidden: true,
-  //     refreshInterval: 1000 * 60 * 5,
-  //   },
-  // );
 
   return (
     <SidebarMenu>

@@ -56,11 +56,15 @@ export const authApi = {
     return apiClient.post<{ message: string }>('/api/v1/register', data);
   },
 
-  refreshToken: async (data: RefreshTokenRequest) => {
-    return apiClient.post<RefreshTokenResponse>('/api/v1/token/refresh', data);
+  refreshToken: async () => {
+    return apiClient.post<RefreshTokenResponse>('/api/v1/token/refresh');
   },
 
   me: async () => {
     return apiClient.auth.get<User>('/api/v1/auth/me');
+  },
+
+  logout: async () => {
+    return apiClient.auth.post<{ message: string }>('/api/v1/auth/logout');
   },
 };

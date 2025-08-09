@@ -19,31 +19,88 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
   }
 };
 
+// Flag to prevent multiple simultaneous refresh attempts
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+// Function to refresh token
+const refreshToken = async (): Promise<boolean> => {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${getBaseURL()}/api/v1/token/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const success = response.ok;
+      
+      if (!success) {
+        console.error('Token refresh failed:', response.status);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
 const request = async <T>(
   endpoint: string,
   options: RequestInit = {},
   _requiresAuth: boolean = false
 ): Promise<ApiResponse<T>> => {
-  try {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+  const makeRequest = async (retryCount = 0): Promise<ApiResponse<T>> => {
+    try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      };
 
-    // Auth is now handled via HTTP-only cookies
-    // The requiresAuth parameter is kept for backward compatibility
-    // but authentication is automatic with credentials: 'include'
+      const response = await fetch(`${getBaseURL()}${endpoint}`, {
+        headers,
+        credentials: 'include',
+        ...options,
+      });
 
-    const response = await fetch(`${getBaseURL()}${endpoint}`, {
-      headers,
-      credentials: 'include',
-      ...options,
-    });
+      // If we get a 401 and haven't already retried, try to refresh token
+      if (response.status === 401 && retryCount === 0 && endpoint !== '/api/v1/token/refresh') {
+        console.log('Received 401, attempting token refresh...');
+        
+        const refreshSuccess = await refreshToken();
+        
+        if (refreshSuccess) {
+          console.log('Token refresh successful, retrying original request...');
+          // Retry the original request
+          return makeRequest(1);
+        } else {
+          console.log('Token refresh failed, returning 401 response');
+          // If refresh fails, let the error propagate
+          return handleResponse<T>(response);
+        }
+      }
 
-    return handleResponse<T>(response);
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Network error' };
-  }
+      return handleResponse<T>(response);
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Network error' };
+    }
+  };
+
+  return makeRequest();
 };
 
 export const apiClient = {

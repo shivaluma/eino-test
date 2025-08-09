@@ -135,6 +135,7 @@ func main() {
 
 	// Protected auth/user routes
 	protected.GET("/auth/me", authHandler.Me)
+	protected.POST("/auth/logout", authHandler.Logout)
 
 	// Protected OAuth routes
 	protected.GET("/auth/oauth/linked", oauthHandler.GetLinkedAccounts)
