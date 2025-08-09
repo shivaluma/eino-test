@@ -17,8 +17,9 @@ export default async function ChatLayout({
   const session = await auth.api
     .getSession()
     .catch(() => null);
-  const isCollapsed =
-    cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value !== "true";
+  const sidebarCookie = cookieStore.get(COOKIE_KEY_SIDEBAR_STATE)?.value;
+  // Default to open if no cookie exists, otherwise use cookie value
+  const isCollapsed = sidebarCookie === undefined ? false : sidebarCookie !== "true";
   return (
     <SidebarProvider defaultOpen={!isCollapsed}>
       {/* Initialize auth context with server session */}
@@ -26,7 +27,7 @@ export default async function ChatLayout({
       
       {/* <AppPopupProvider /> */}
       <AppSidebar />
-      <main className="relative bg-background  w-full flex flex-col h-screen">
+      <main className="relative bg-background w-full flex flex-col h-screen">
         <AppHeader />
         <div className="flex-1 overflow-y-auto">{children}</div>
       </main>
