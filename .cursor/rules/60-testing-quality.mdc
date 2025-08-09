@@ -1,0 +1,20 @@
+---
+description: Testing strategy and quality gates for backend and frontend (from CLAUDE.md).
+---
+
+### Backend tests
+
+- Prefer table-driven tests
+- Use test DB setup/teardown helpers
+- Run with `go test`, add `-race` where relevant
+
+### Frontend (planned)
+
+- Unit tests with RTL
+- Integration/E2E with Playwright
+
+### Quality
+
+- `go vet`, `go fmt` (backend); `pnpm lint`, `pnpm check-types` (frontend)
+
+See [CLAUDE.md](mdc:CLAUDE.md) for examples.

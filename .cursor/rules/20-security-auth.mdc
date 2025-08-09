@@ -1,0 +1,29 @@
+---
+alwaysApply: true
+description: Security, authentication, and OAuth guidance to follow across the repo (from CLAUDE.md).
+---
+
+### Authentication & tokens
+
+- Use **JWT** access (short-lived) and refresh (longer-lived) tokens
+- Store tokens in **HTTP-only** cookies; set appropriate `SameSite` and `Secure`
+- Validate JWTs in middleware; avoid leaking error details to clients
+
+### OAuth
+
+- Support GitHub and Google; enforce **state** validation and prefer **PKCE**
+- Keep client IDs/secrets in environment variables; never commit secrets
+- Redirect URLs should match configured providers exactly
+
+### Input and database security
+
+- Validate all inputs server-side; sanitize when necessary
+- Prevent SQL injection with parameterized queries
+- Encode outputs to prevent XSS; set CSP where applicable
+
+### Infrastructure
+
+- Restrictive CORS in production
+- Log security-relevant events with context; avoid sensitive data in logs
+
+Additional details and examples: [CLAUDE.md](mdc:CLAUDE.md)

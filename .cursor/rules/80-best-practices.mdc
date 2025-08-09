@@ -1,0 +1,21 @@
+---
+alwaysApply: true
+description: Cross-cutting best practices for organization, performance, and maintainability (from CLAUDE.md).
+---
+
+### Code organization
+
+- Clear boundaries between layers; explicit DI
+- Use interfaces for repositories; keep handlers thin
+
+### Performance
+
+- Index hot DB columns; use connection pooling
+- Cache strategically; optimize static assets delivery
+
+### Maintainability
+
+- Comprehensive docs where non-obvious; unit/integration tests on critical paths
+- Structured logging with context; consistent error handling
+
+For deeper guidance, see [CLAUDE.md](mdc:CLAUDE.md).

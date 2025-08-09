@@ -1,0 +1,23 @@
+---
+description: Common development commands for backend and frontend (from CLAUDE.md).
+---
+
+### Backend
+
+- Dev: `go run cmd/server/main.go`
+- Migrations: `go run cmd/migrate/main.go up|down`
+- Build: `go build -o server cmd/server/main.go`
+- Quality: `go test ./...`, `go vet ./...`, `go fmt ./...`
+
+### Frontend
+
+- Dev: `cd frontend && pnpm dev`
+- Build/Start: `pnpm build`, `pnpm start`
+- Quality: `pnpm lint`, `pnpm format`, `pnpm check-types`
+
+### Docker
+
+- Dev stack: `docker-compose up -d`
+- Logs: `docker-compose logs -f api`
+
+See [CLAUDE.md](mdc:CLAUDE.md) for the full list and details.

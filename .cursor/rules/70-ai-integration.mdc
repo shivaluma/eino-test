@@ -1,0 +1,19 @@
+---
+description: AI service integration using Eino with OpenAI (from CLAUDE.md).
+---
+
+### Components
+
+- AI service interface: `internal/ai/service.go`
+- Providers: `internal/ai/providers/*` (e.g., OpenAI)
+- Templates: `internal/ai/templates/*`
+
+### Configuration
+
+- Env: `OPENAI_API_KEY`, `OPENAI_MODEL_NAME`, `OPENAI_BASE_URL`
+
+### Usage
+
+- Inject AI service into handlers; keep provider-specifics encapsulated
+
+More info in [CLAUDE.md](mdc:CLAUDE.md).

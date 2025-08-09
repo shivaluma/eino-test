@@ -1,0 +1,24 @@
+---
+description: Deployment flow and Docker-based development/deploy guidance (from CLAUDE.md).
+---
+
+### Local development
+
+- Start DB: `docker-compose up -d postgres`
+- Run migrations: `go run cmd/migrate/main.go up`
+- Start backend: `go run cmd/server/main.go`
+- Start frontend: `cd frontend && pnpm dev`
+
+### Production
+
+- Build backend: `go build -o server cmd/server/main.go`
+- Build frontend: `cd frontend && pnpm build`
+- Run: `ENV=production ./server`
+
+### Docker
+
+- Build backend image: `docker build -t eino-backend .`
+- Build frontend image: `docker build -t eino-frontend ./frontend`
+- Full stack: `docker-compose up -d`
+
+Refer to [CLAUDE.md](mdc:CLAUDE.md) for details.

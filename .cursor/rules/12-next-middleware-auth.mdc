@@ -1,0 +1,16 @@
+---
+globs: frontend/**/*.ts,frontend/**/*.tsx
+description: Next.js middleware and auth route protection guidance (from CLAUDE.md).
+---
+
+### Middleware & routing
+
+- Use `frontend/middleware.ts` to protect routes and enforce auth
+- Organize routes using groups like `(auth)` and `(chat)` in `frontend/app`
+
+### Auth UX
+
+- Tokens in HTTP-only cookies; fetch with `credentials: 'include'`
+- Redirect unauthenticated users to sign-in
+
+More in [CLAUDE.md](mdc:CLAUDE.md).

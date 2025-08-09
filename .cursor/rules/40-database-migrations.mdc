@@ -1,0 +1,19 @@
+---
+description: Database schema conventions and migration practices (from CLAUDE.md).
+---
+
+### Schema conventions
+
+- UUID v4 primary keys
+- Timestamps: `created_at`, `updated_at`
+- Proper foreign keys with CASCADE as appropriate
+- Index frequently queried columns
+
+### Migrations
+
+- Sequential filenames (e.g., `001_...`, `002_...`)
+- Descriptive and time-stamped
+- Prefer reversible/SAFE changes; never drop without backup plan
+- SQL lives in `migrations/*.sql`; run via `cmd/migrate`
+
+See examples in [CLAUDE.md](mdc:CLAUDE.md).

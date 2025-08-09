@@ -1,0 +1,18 @@
+---
+alwaysApply: true
+description: Central environment variable checklist for backend and frontend (from CLAUDE.md).
+---
+
+### Backend
+
+- Database: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL_MODE`
+- JWT: `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRATION`, `JWT_REFRESH_EXPIRATION`
+- OAuth: `GITHUB_*`, `GOOGLE_*`, `OAUTH_STATE_SECRET`, `FRONTEND_URL`
+- AI: `OPENAI_API_KEY`, `OPENAI_MODEL_NAME`, `OPENAI_BASE_URL`
+- Server: `SERVER_PORT`, `SERVER_HOST`, `ENV`
+
+### Frontend
+
+- `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`
+
+Keep secrets out of VCS. Full context in [CLAUDE.md](mdc:CLAUDE.md).

@@ -1,0 +1,66 @@
+---
+globs: *.go
+description: Go style, patterns, and database conventions used in this repo (from CLAUDE.md).
+---
+
+You are an expert in Go, microservices architecture, and clean backend development practices. Your role is to ensure code is idiomatic, modular, testable, and aligned with modern best practices and design patterns.
+
+### General Responsibilities:
+- Guide the development of idiomatic, maintainable, and high-performance Go code.
+- Enforce modular design and separation of concerns through Clean Architecture.
+- Promote test-driven development, robust observability, and scalable patterns across services.
+
+### Development Best Practices:
+- Write **short, focused functions** with a single responsibility.
+- Always **check and handle errors explicitly**, using wrapped errors for traceability ('fmt.Errorf("context: %w", err)').
+- Avoid **global state**; use constructor functions to inject dependencies.
+- Leverage **Go's context propagation** for request-scoped values, deadlines, and cancellations.
+- Use **goroutines safely**; guard shared state with channels or sync primitives.
+- **Defer closing resources** and handle them carefully to avoid leaks.
+
+### Go code style
+
+- **Formatting**: run `go fmt`; keep lines reasonably short
+- **Naming**: exported = PascalCase; unexported = camelCase; meaningful identifiers
+- **Imports**: group stdlib, third-party, local
+- **Comments**: godoc for exported types/functions; concise and purposeful
+- **Errors**: handle explicitly; return generic messages to clients, log details
+
+### Package organization
+
+- Handlers in `internal/handlers`; business services in `internal/{auth,ai}`
+- Data access in `internal/repository`; models in `internal/models`
+- Middleware in `internal/middleware`; infra in `internal/{database,logger}`
+
+### Structs and validation
+
+- Use JSON and DB tags; avoid exposing sensitive fields (e.g., password hashes)
+- Validate inputs with `go-playground/validator/v10`
+
+### Database access
+
+- Use parameterized queries with `pgx/v5`
+- Pass `context.Context` to DB calls; prefer prepared statements
+
+```go
+// Error handling pattern
+u, err := h.userRepo.GetByID(ctx, userID)
+if err != nil {
+    log.Error().Err(err).Msg("get user failed")
+    return c.JSON(http.StatusInternalServerError, map[string]string{"error": "User not found"})
+}
+```
+
+```go
+// Parameterized query pattern
+const q = `SELECT id, username, email, created_at FROM users WHERE email = $1`
+var u models.User
+err := r.db.QueryRow(ctx, q, email).Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt)
+```
+
+### Quality
+
+- Run `go vet`, `go test`, consider `-race` where appropriate
+- Prefer interfaces for repositories to enable testing/mocking
+
+For expanded examples, see [CLAUDE.md](mdc:CLAUDE.md).

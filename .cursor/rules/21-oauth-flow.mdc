@@ -1,0 +1,28 @@
+---
+alwaysApply: true
+description: OAuth2 providers, security measures (state, PKCE), and handler locations (from CLAUDE.md).
+---
+
+### Providers and handlers
+
+- Providers: GitHub, Google
+- Backend handlers: `internal/handlers/oauth_handler.go`, `internal/handlers/auth_handler.go`
+- Frontend pages: `frontend/app/(auth)/*`, callback pages under `oauth/callback`
+
+### Security requirements
+
+- Validate `state` parameter; sign state with `OAUTH_STATE_SECRET`
+- Prefer **PKCE** (code verifier/challenge) for enhanced security
+- Use HTTPS in production; set `Secure`, `HttpOnly`, `SameSite`
+
+### Environment variables
+
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URL`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URL`
+- `OAUTH_STATE_SECRET`, `FRONTEND_URL`
+
+### Redirects
+
+- Ensure registered redirect URLs exactly match configured URLs in providers
+
+See [CLAUDE.md](mdc:CLAUDE.md) for deeper implementation notes.

@@ -1,0 +1,48 @@
+---
+globs: *.ts,*.tsx
+description: Next.js 15/React 19 TypeScript style guidelines and patterns (from CLAUDE.md).
+---
+
+### TypeScript/React style
+
+- **Formatting**: 2-space indent, semicolons, single quotes
+- **Naming**: camelCase for vars/functions; PascalCase for components
+- **Files**: `.tsx` for components; `.ts` for utilities and types
+- **Imports**: prefer `@/` path alias for root imports
+
+### Next.js App Router
+
+- Default to server components; add `'use client'` only when interactivity is required
+- Organize routes via groups like `(auth)` and `(chat)` under `frontend/app`
+
+### Components
+
+- Keep props typed; prefer explicit interfaces
+- Co-locate feature components under `frontend/components` and shared UI under `frontend/components/ui`
+
+### API pattern
+
+- Centralize fetch in a client wrapper; include `credentials: 'include'` for cookie auth
+
+```ts
+export const apiClient = {
+  async get<T>(endpoint: string): Promise<{ data: T | null; error: string | null }> {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return { data: (await res.json()) as T, error: null };
+    } catch (e: any) {
+      return { data: null, error: e.message };
+    }
+  },
+};
+```
+
+### Types
+
+- Define shared types in `frontend/types`; keep them stable and descriptive
+
+See more guidance in [CLAUDE.md](mdc:CLAUDE.md).

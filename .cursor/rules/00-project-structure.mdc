@@ -1,0 +1,45 @@
+---
+alwaysApply: true
+description: High-level project structure, entry points, and navigation tips (from CLAUDE.md).
+---
+
+### Project structure and entry points
+
+- **Backend**
+  - Entry: `cmd/server/main.go`
+  - Migrations tool: `cmd/migrate/main.go`
+  - HTTP layer: `internal/handlers/*`
+  - Business logic/services: `internal/ai/*`, `internal/auth/*`
+  - Data access: `internal/repository/*`
+  - Models: `internal/models/*`
+  - Middleware: `internal/middleware/*`
+  - Infrastructure: `internal/database/*`, `internal/logger/*`, `config/`
+
+- **Frontend (Next.js App Router)**
+  - App routes: `frontend/app/*`
+  - UI/components: `frontend/components/*`
+  - Frontend libs: `frontend/lib/*`
+  - Middleware: `frontend/middleware.ts`
+
+- **Database & migrations**
+  - SQL migrations: `migrations/*.sql`
+  - Custom migrator: `internal/migrations/migrator.go`
+
+### Key conventions
+
+- **Layered architecture**: HTTP → Business logic → Data → Infra
+- **Repository pattern**: Data access behind interfaces (`internal/repository`)
+- **Dependency injection**: Inject services/repos/db into consumers
+- **UUIDs** for primary keys; timestamp columns on tables
+- **Next.js 15** with server components by default; opt-in client components
+
+### Quick navigation
+
+- Auth flow endpoints: `internal/handlers/oauth_handler.go`, `internal/handlers/auth_handler.go`
+- AI provider wiring: `internal/ai/providers/*`, `internal/ai/service.go`
+- Frontend auth pages: `frontend/app/(auth)/*`
+- Chat UI: `frontend/app/(chat)/page.tsx`
+
+### References
+
+- Full details and examples live in [CLAUDE.md](mdc:CLAUDE.md)
