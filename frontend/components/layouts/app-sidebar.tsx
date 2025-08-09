@@ -15,7 +15,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AppSidebarMenus } from "@/components/layouts/app-sidebar-menus";
-import { AppSidebarAgents } from "@/components/layouts/app-sidebar-agents";
+// import { AppSidebarAgents } from "@/components/layouts/app-sidebar-agents";
 import { AppSidebarThreads } from "@/components/layouts/app-sidebar-threads";
 
 import { isShortcutEvent, Shortcuts } from "@/lib/keyboard-shortcuts";
@@ -93,7 +93,7 @@ export function AppSidebar({
       <SidebarContent className="mt-2 overflow-hidden relative">
         <div className="flex flex-col gap-2 overflow-y-auto">
           <AppSidebarMenus />
-          <AppSidebarAgents />
+          {/* <AppSidebarAgents /> */}
           <AppSidebarThreads />
         </div>
       </SidebarContent>
