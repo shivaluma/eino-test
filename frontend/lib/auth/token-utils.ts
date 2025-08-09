@@ -80,33 +80,22 @@ const decodeBase64URL = (str: string): string | null => {
 /**
  * Securely store authentication tokens
  */
-export const storeTokensSecurely = (accessToken: string, refreshToken: string): void => {
+// Helper function to check authentication status via API
+export const checkAuthStatus = async (): Promise<boolean> => {
   try {
-    // Validate tokens before storing
-    const accessTokenValidation = validateJWT(accessToken);
-    const refreshTokenValidation = validateJWT(refreshToken);
-
-    if (!accessTokenValidation.isValid) {
-      throw new Error(`Invalid access token: ${accessTokenValidation.error}`);
-    }
-
-    if (!refreshTokenValidation.isValid) {
-      throw new Error(`Invalid refresh token: ${refreshTokenValidation.error}`);
-    }
-
-    // Store in localStorage (consider using secure httpOnly cookies in production)
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
-    localStorage.setItem('token_stored_at', Date.now().toString());
-
-    // Clear any previous errors
-    localStorage.removeItem('auth_error');
-
+    const response = await fetch('/api/auth/validate');
+    const data = await response.json();
+    return data.authenticated === true;
   } catch (error) {
-    // Clean up on failure
-    clearStoredTokens();
-    throw error;
+    console.error('Auth status check failed:', error);
+    return false;
   }
+};
+
+// Legacy function for backward compatibility - tokens now managed via HTTP-only cookies
+export const storeTokensSecurely = (accessToken: string, refreshToken: string): void => {
+  console.warn('Tokens are now managed via HTTP-only cookies by the backend');
+  // Tokens are now handled server-side via cookies, no client-side storage needed
 };
 
 /**
@@ -158,7 +147,22 @@ export const isAuthenticated = (): boolean => {
 /**
  * Get access token if valid, otherwise return null
  */
+// Helper function to logout by clearing cookies
+export const logout = async (): Promise<void> => {
+  try {
+    // Call backend logout endpoint to clear HTTP-only cookies
+    await fetch('/api/auth/logout', { method: 'POST' });
+    // Redirect to sign-in page
+    window.location.href = '/sign-in';
+  } catch (error) {
+    console.error('Logout failed:', error);
+    // Force redirect even if API call fails
+    window.location.href = '/sign-in';
+  }
+};
+
+// Legacy functions - tokens now managed via HTTP-only cookies
 export const getValidAccessToken = (): string | null => {
-  const tokens = getStoredTokens();
-  return tokens?.accessToken || null;
+  console.warn('Access tokens are now managed via HTTP-only cookies and not accessible from client-side');
+  return null;
 };

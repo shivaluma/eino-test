@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader } from 'lucide-react';
 
-import { validateJWT, storeTokensSecurely } from '@/lib/auth/token-utils';
+
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
@@ -31,32 +31,15 @@ export default function OAuthCallbackPage() {
           return;
         }
 
-        // Validate required tokens
-        const accessToken = searchParams.get('access_token');
-        const refreshToken = searchParams.get('refresh_token');
-
-        if (!accessToken) {
-          throw new Error('Missing access token');
+        // Check for success parameter (tokens are now in HTTP-only cookies)
+        const success = searchParams.get('success');
+        if (success !== 'true') {
+          throw new Error('OAuth authentication was not successful');
         }
 
-        if (!refreshToken) {
-          throw new Error('Missing refresh token');  
-        }
-
-        // Validate token format using secure utilities
-        const accessTokenValidation = validateJWT(accessToken);
-        const refreshTokenValidation = validateJWT(refreshToken);
-        
-        if (!accessTokenValidation.isValid) {
-          throw new Error(`Invalid access token: ${accessTokenValidation.error}`);
-        }
-        
-        if (!refreshTokenValidation.isValid) {
-          throw new Error(`Invalid refresh token: ${refreshTokenValidation.error}`);
-        }
-
-        // Store tokens securely
-        storeTokensSecurely(accessToken, refreshToken);
+        // Tokens are now stored as HTTP-only cookies by the backend
+        // We don't need to handle them directly in the frontend
+        // The middleware will automatically detect the cookies
         
         // Redirect to home page on success
         router.replace('/');

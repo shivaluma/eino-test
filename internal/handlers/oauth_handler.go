@@ -496,10 +496,31 @@ func (h *OAuthHandler) HandleOAuthCallback(c echo.Context) error {
 		fmt.Printf("Failed to store refresh token: %v\n", err)
 	}
 
-	// Redirect to frontend with tokens
-	redirectURL := fmt.Sprintf("%s/callback?access_token=%s&refresh_token=%s",
-		h.frontendURL, accessToken, refreshToken)
+	// Set secure HTTP-only cookies for tokens (following world best practices)
+	// Access token cookie - shorter expiration
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   15 * 60, // 15 minutes
+	})
 
+	// Refresh token cookie - longer expiration
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   7 * 24 * 60 * 60, // 7 days
+	})
+
+	// Redirect to frontend OAuth callback for client-side handling
+	redirectURL := fmt.Sprintf("%s/oauth/callback?success=true", h.frontendURL)
 	return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
