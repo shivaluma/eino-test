@@ -13,21 +13,30 @@ import (
 func AuthMiddleware(authSvc *auth.Service) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			var tokenString string
+			
+			// First, try to get token from Authorization header
 			authHeader := c.Request().Header.Get("Authorization")
-			if authHeader == "" {
-				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"error": "Authorization header required",
-				})
+			if authHeader != "" {
+				tokenParts := strings.SplitN(authHeader, " ", 2)
+				if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+					return c.JSON(http.StatusUnauthorized, map[string]string{
+						"error": "Invalid authorization header format",
+					})
+				}
+				tokenString = tokenParts[1]
+			} else {
+				// If no Authorization header, try to get token from cookie
+				cookie, err := c.Cookie("access_token")
+				if err != nil || cookie.Value == "" {
+					return c.JSON(http.StatusUnauthorized, map[string]string{
+						"error": "Authentication required",
+					})
+				}
+				tokenString = cookie.Value
 			}
 
-			tokenParts := strings.SplitN(authHeader, " ", 2)
-			if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"error": "Invalid authorization header format",
-				})
-			}
-
-			token, err := authSvc.ValidateAccessToken(tokenParts[1])
+			token, err := authSvc.ValidateAccessToken(tokenString)
 			if err != nil {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Invalid or expired token",

@@ -37,9 +37,9 @@ import { useCallback } from "react";
 import { GithubIcon } from "@/components/icons/github-icon";
 // import { DiscordIcon } from "@/components/ui/discord-icon";
 import { useThemeStyle } from "@/hooks/use-theme-style";
-import type { UISessionUser } from "@/lib/auth/server";
+import type { SessionUser } from "@/lib/auth/server";
 
-export function AppSidebarUser({ user }: { user?: UISessionUser }) {
+export function AppSidebarUser({ user }: { user?: SessionUser }) {
   // const appStoreMutate = appStore((state) => state.mutate);
   const t = useTranslations("Layout");
 

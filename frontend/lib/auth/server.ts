@@ -1,6 +1,7 @@
 import { headers as getHeaders } from 'next/headers';
 
-type BackendUser = {
+// Types for API response
+type ApiUser = {
   id: string;
   username: string;
   email: string;
@@ -8,7 +9,8 @@ type BackendUser = {
   updated_at: string;
 };
 
-export type UISessionUser = {
+// Type for UI/Session use
+export type SessionUser = {
   id: string;
   name: string;
   email: string;
@@ -17,49 +19,45 @@ export type UISessionUser = {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-function extractBearerFromHeadersOrCookies(incoming: Headers): string | null {
-  const auth = incoming.get('authorization') || incoming.get('Authorization');
-  if (auth && auth.startsWith('Bearer ')) return auth;
-  const cookieHeader = incoming.get('cookie') || incoming.get('Cookie');
-  if (!cookieHeader) return null;
-  const token = cookieHeader
-    .split(';')
-    .map((c) => c.trim())
-    .find((c) => c.startsWith('access_token='))
-    ?.split('=')[1];
-  return token ? `Bearer ${decodeURIComponent(token)}` : null;
-}
-
 export const auth = {
   api: {
-    async getSession(params?: { headers?: Headers }): Promise<{ session: { user: UISessionUser }; user: UISessionUser }> {
-      const incomingHeaders = params?.headers ?? (await getHeaders());
-      const bearer = extractBearerFromHeadersOrCookies(incomingHeaders);
-      if (!bearer) {
-        throw new Error('Unauthenticated');
+    async getSession(): Promise<{ session: { user: SessionUser }; user: SessionUser }> {
+      // Get the headers including cookies
+      const requestHeaders = await getHeaders();
+      
+      // Create a new Headers object with the cookie header
+      const headers = new Headers({
+        'Content-Type': 'application/json',
+      });
+      
+      // Forward the cookie header if it exists
+      const cookieHeader = requestHeaders.get('cookie');
+      if (cookieHeader) {
+        headers.set('Cookie', cookieHeader);
       }
 
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: bearer,
-        },
-        // Do not forward cookies by default; we rely on Bearer
+        headers,
+        // No need for credentials since we're manually forwarding cookies
       });
 
       if (!res.ok) {
         throw new Error('Unauthenticated');
       }
 
-      const data: BackendUser = await res.json();
-      const uiUser: UISessionUser = {
+      const data: ApiUser = await res.json();
+      const sessionUser: SessionUser = {
         id: data.id,
         name: data.username,
         email: data.email,
         image: null,
       };
-      return { session: { user: uiUser }, user: uiUser };
+      
+      return { 
+        session: { user: sessionUser }, 
+        user: sessionUser 
+      };
     },
   },
 };

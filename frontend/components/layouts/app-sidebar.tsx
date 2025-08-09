@@ -22,11 +22,11 @@ import { isShortcutEvent, Shortcuts } from "@/lib/keyboard-shortcuts";
 import { AppSidebarUser } from "@/components/layouts/app-sidebar-user";
 import { PanelLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { UISessionUser } from "@/lib/auth/server";
+import type { SessionUser } from "@/lib/auth/server";
 
 export function AppSidebar({
   session,
-}: { session?: { session: { user: UISessionUser }; user: UISessionUser } }) {
+}: { session?: { session: { user: SessionUser }; user: SessionUser } }) {
   const { toggleSidebar, setOpenMobile } = useSidebar();
   const router = useRouter();
   const isMobile = useIsMobile();

@@ -3,37 +3,22 @@ import { authApi, LoginRequest, LoginResponse, RegisterRequest, User, CheckEmail
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-const STORAGE_KEY = 'auth_tokens';
+// Only store user data for UI responsiveness, not tokens
 const USER_STORAGE_KEY = 'auth_user';
 
-const saveAuthData = (_tokens: LoginResponse) => {
-  // Tokens are set by HttpOnly cookies; optionally cache user for UI responsiveness
-  if (typeof window !== 'undefined' && _tokens.user) {
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(_tokens.user));
+const saveUserData = (user: User | undefined) => {
+  if (typeof window !== 'undefined' && user) {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   }
 };
 
-const clearAuthData = () => {
+const clearUserData = () => {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USER_STORAGE_KEY);
   }
 };
 
-export const getTokens = (): LoginResponse | null => {
-  if (typeof window === 'undefined') return null;
-  
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return null;
-  
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return null;
-  }
-};
-
-export const getUser = (): User | null => {
+export const getCachedUser = (): User | null => {
   if (typeof window === 'undefined') return null;
   
   const stored = localStorage.getItem(USER_STORAGE_KEY);
@@ -96,7 +81,7 @@ export const useRegisterMutation = () => {
       return loginResponse.data;
     },
     onSuccess: (data: LoginResponse) => {
-      saveAuthData(data);
+      saveUserData(data.user);
       toast.success('Account created successfully!');
       router.push('/');
     },
@@ -124,7 +109,7 @@ export const useLoginMutation = () => {
       return response.data;
     },
     onSuccess: (data: LoginResponse) => {
-      saveAuthData(data);
+      saveUserData(data.user);
       toast.success('Successfully logged in!');
       router.push('/');
       router.refresh();
@@ -139,7 +124,7 @@ export const useLogout = () => {
   const router = useRouter();
   
   return () => {
-    clearAuthData();
+    clearUserData();
     router.push('/sign-in');
     toast.success('Successfully logged out');
   };

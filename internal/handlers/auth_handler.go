@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/shivaluma/eino-agent/internal/auth"
 	"github.com/shivaluma/eino-agent/internal/models"
@@ -21,6 +22,30 @@ func NewAuthHandler(userRepo *repository.UserRepository, authSvc *auth.Service) 
 		userRepo: userRepo,
 		authSvc:  authSvc,
 	}
+}
+
+// setAuthCookies is a helper method to set authentication cookies
+func (h *AuthHandler) setAuthCookies(c echo.Context, accessToken, refreshToken string, refreshExpiresAt time.Time) {
+	// Access token cookie - no explicit expiration (session cookie)
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   c.IsTLS(),
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Refresh token cookie with expiration
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   c.IsTLS(),
+		SameSite: http.SameSiteLaxMode,
+		Expires:  refreshExpiresAt,
+	})
 }
 
 func (h *AuthHandler) CheckEmail(c echo.Context) error {
@@ -159,38 +184,16 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		})
 	}
 
-	// Set HttpOnly cookies for access and refresh tokens
-	// Access token as a session cookie (expires with browser session)
-	c.SetCookie(&http.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   c.IsTLS(),
-		SameSite: http.SameSiteLaxMode,
-	})
+	// Set authentication cookies
+	h.setAuthCookies(c, accessToken, refreshToken, refreshTokenRecord.ExpiresAt)
 
-	// Refresh token cookie with expiration
-	c.SetCookie(&http.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   c.IsTLS(),
-		SameSite: http.SameSiteLaxMode,
-		Expires:  refreshTokenRecord.ExpiresAt,
-	})
-
-	return c.JSON(http.StatusOK, models.TokenResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		User: &models.UserResponse{
-			ID:        user.ID,
-			Username:  user.Username,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-		},
+	// Return only user data, not tokens
+	return c.JSON(http.StatusOK, models.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	})
 }
 
@@ -259,29 +262,12 @@ func (h *AuthHandler) RefreshToken(c echo.Context) error {
 		})
 	}
 
-	// Update cookies on refresh
-	c.SetCookie(&http.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   c.IsTLS(),
-		SameSite: http.SameSiteLaxMode,
-	})
+	// Update authentication cookies
+	h.setAuthCookies(c, accessToken, newRefreshToken, newRefreshTokenRecord.ExpiresAt)
 
-	c.SetCookie(&http.Cookie{
-		Name:     "refresh_token",
-		Value:    newRefreshToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   c.IsTLS(),
-		SameSite: http.SameSiteLaxMode,
-		Expires:  newRefreshTokenRecord.ExpiresAt,
-	})
-
-	return c.JSON(http.StatusOK, models.TokenResponse{
-		AccessToken:  accessToken,
-		RefreshToken: newRefreshToken,
+	// Return success without tokens
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "Token refreshed successfully",
 	})
 }
 

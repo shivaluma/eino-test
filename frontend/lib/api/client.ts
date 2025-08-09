@@ -19,17 +19,10 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
   }
 };
 
-const getAuthToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
-};
-
 const request = async <T>(
   endpoint: string,
   options: RequestInit = {},
-  requiresAuth: boolean = false
+  _requiresAuth: boolean = false
 ): Promise<ApiResponse<T>> => {
   try {
     const headers: HeadersInit = {
@@ -37,13 +30,9 @@ const request = async <T>(
       ...options.headers,
     };
 
-    // Add auth token if required
-    if (requiresAuth) {
-      const token = getAuthToken();
-      if (token) {
-        (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-      }
-    }
+    // Auth is now handled via HTTP-only cookies
+    // The requiresAuth parameter is kept for backward compatibility
+    // but authentication is automatic with credentials: 'include'
 
     const response = await fetch(`${getBaseURL()}${endpoint}`, {
       headers,
