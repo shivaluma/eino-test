@@ -56,7 +56,7 @@ export default function SignUpPage() {
         return;
       }
       setStep(2);
-    } catch (error) {
+    } catch (_) {
       toast.error("Failed to check email availability");
     }
   };

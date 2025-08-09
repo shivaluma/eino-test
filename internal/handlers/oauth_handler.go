@@ -137,28 +137,28 @@ func (h *OAuthHandler) HandleOAuthCallback(c echo.Context) error {
 	// Handle OAuth errors
 	if errorParam != "" {
 		errorDesc := c.QueryParam("error_description")
-		redirectURL := fmt.Sprintf("%s/auth/sign-in?error=%s&error_description=%s",
+		redirectURL := fmt.Sprintf("%s/sign-in?error=%s&error_description=%s",
 			h.frontendURL, errorParam, errorDesc)
 		return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 
 	// Validate state
 	if state == "" {
-		redirectURL := fmt.Sprintf("%s/auth/sign-in?error=invalid_state", h.frontendURL)
+		redirectURL := fmt.Sprintf("%s/sign-in?error=invalid_state", h.frontendURL)
 		return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 
 	// Retrieve and validate state from database
 	storedState, err := h.oauthRepo.GetState(c.Request().Context(), state)
 	if err != nil || storedState == nil {
-		redirectURL := fmt.Sprintf("%s/auth/sign-in?error=invalid_state", h.frontendURL)
+		redirectURL := fmt.Sprintf("%s/sign-in?error=invalid_state", h.frontendURL)
 		return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 
 	// Check state expiration
 	if time.Now().After(storedState.ExpiresAt) {
 		h.oauthRepo.DeleteState(c.Request().Context(), state)
-		redirectURL := fmt.Sprintf("%s/auth/sign-in?error=state_expired", h.frontendURL)
+		redirectURL := fmt.Sprintf("%s/sign-in?error=state_expired", h.frontendURL)
 		return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 
