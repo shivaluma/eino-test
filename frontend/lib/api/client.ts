@@ -23,6 +23,9 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
+// Export refresh state for other components
+export const getRefreshState = () => ({ isRefreshing, refreshPromise });
+
 // Function to refresh token
 const refreshToken = async (): Promise<boolean> => {
   if (isRefreshing && refreshPromise) {
