@@ -13,14 +13,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTranslations } from "next-intl";
-import { useShallow } from "zustand/shallow";
-// import { appStore } from "@/app/store";
+import { useUIStore } from "@/lib/store";
 import { useEffect } from "react";
 
-export function KeyboardShortcutsPopup({}) {
-  // const [openShortcutsPopup, appStoreMutate] = appStore(
-  //   useShallow((state) => [state.openShortcutsPopup, state.mutate]),
-  // );
+export function KeyboardShortcutsPopup() {
+  const keyboardShortcutsOpen = useUIStore((state) => state.keyboardShortcutsOpen);
+  const toggleKeyboardShortcuts = useUIStore((state) => state.toggleKeyboardShortcuts);
   const t = useTranslations("KeyboardShortcuts");
 
   useEffect(() => {
@@ -28,21 +26,17 @@ export function KeyboardShortcutsPopup({}) {
       if (isShortcutEvent(e, Shortcuts.openShortcutsPopup)) {
         e.preventDefault();
         e.stopPropagation();
-        // appStoreMutate((prev) => ({
-        //   openShortcutsPopup: !prev.openShortcutsPopup,
-        // }));
+        toggleKeyboardShortcuts();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [toggleKeyboardShortcuts]);
 
   return (
     <Dialog
-      open={false}
-      onOpenChange={() => {
-        // appStoreMutate({ openShortcutsPopup: !openShortcutsPopup })
-      }}
+      open={keyboardShortcutsOpen}
+      onOpenChange={toggleKeyboardShortcuts}
     >
       <DialogContent className="md:max-w-3xl">
         <DialogTitle>{t("title")}</DialogTitle>

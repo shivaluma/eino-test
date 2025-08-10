@@ -14,16 +14,19 @@ import { Separator } from "@/components/ui/separator";
 
 import { useEffect, useMemo } from "react";
 // import { ThreadDropdown } from "@/components/layouts/thread-dropdown";
-// import { appStore } from "@/app/store";
+import { useUIStore } from "@/lib/store";
 import { usePathname } from "next/navigation";
 import { getShortcutKeyList, Shortcuts } from "@/lib/keyboard-shortcuts";
 import { useTranslations } from "next-intl";
 import { TextShimmer } from "@/components/ui/text-shimmer";
-import { useShallow } from "zustand/shallow";
 
 export function AppHeader() {
   const t = useTranslations();
-  // const [appStoreMutate] = appStore(useShallow((state) => [state.mutate]));
+  const setTemporaryChat = useUIStore((state) => state.setTemporaryChat);
+  const setVoiceChat = useUIStore((state) => state.setVoiceChat);
+  const temporaryChat = useUIStore((state) => state.temporaryChat);
+  const voiceChat = useUIStore((state) => state.voiceChat);
+  // Keep using the existing sidebar implementation with cookies
   const { toggleSidebar } = useSidebar();
   const currentPaths = usePathname();
 
@@ -69,13 +72,11 @@ export function AppHeader() {
               variant={"ghost"}
               className="bg-secondary/40"
               onClick={() => {
-                // appStoreMutate((state) => ({
-                //   voiceChat: {
-                //     ...state.voiceChat,
-                //     isOpen: true,
-                //     agentId: undefined,
-                //   },
-                // }));
+                setVoiceChat({
+                  ...voiceChat,
+                  isOpen: true,
+                  agentId: undefined,
+                });
               }}
             >
               <AudioWaveformIcon className="size-4" />
@@ -105,12 +106,10 @@ export function AppHeader() {
               variant={"secondary"}
               className="bg-secondary/40"
               onClick={() => {
-                // appStoreMutate((state) => ({
-                //   temporaryChat: {
-                //     ...state.temporaryChat,
-                //     isOpen: !state.temporaryChat.isOpen,
-                //   },
-                // }));
+                setTemporaryChat({
+                  ...temporaryChat,
+                  isOpen: !temporaryChat.isOpen,
+                });
               }}
             >
               <MessageCircleDashed className="size-4" />
