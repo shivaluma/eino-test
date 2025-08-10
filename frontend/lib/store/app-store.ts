@@ -172,6 +172,11 @@ const createAppStore = (initState: Partial<AppState> = {}) => {
               state.isAuthenticated = false;
               delete state.loadingStates.logout;
             });
+            
+            // Redirect to sign-in page
+            if (typeof window !== "undefined") {
+              window.location.href = "/sign-in";
+            }
           }
         },
 
