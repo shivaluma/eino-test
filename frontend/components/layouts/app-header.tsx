@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 
 import { useEffect, useMemo } from "react";
 // import { ThreadDropdown } from "@/components/layouts/thread-dropdown";
-import { useUIStore } from "@/lib/store";
+import { useAppStore } from "@/lib/store/store-provider";
 import { usePathname } from "next/navigation";
 import { getShortcutKeyList, Shortcuts } from "@/lib/keyboard-shortcuts";
 import { useTranslations } from "next-intl";
@@ -22,10 +22,10 @@ import { TextShimmer } from "@/components/ui/text-shimmer";
 
 export function AppHeader() {
   const t = useTranslations();
-  const setTemporaryChat = useUIStore((state) => state.setTemporaryChat);
-  const setVoiceChat = useUIStore((state) => state.setVoiceChat);
-  const temporaryChat = useUIStore((state) => state.temporaryChat);
-  const voiceChat = useUIStore((state) => state.voiceChat);
+  const setTemporaryChat = useAppStore((state) => state.setTemporaryChat);
+  const setVoiceChat = useAppStore((state) => state.setVoiceChat);
+  const temporaryChat = useAppStore((state) => state.temporaryChat);
+  const voiceChat = useAppStore((state) => state.voiceChat);
   // Keep using the existing sidebar implementation with cookies
   const { toggleSidebar } = useSidebar();
   const currentPaths = usePathname();

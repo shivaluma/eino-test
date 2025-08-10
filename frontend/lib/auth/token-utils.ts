@@ -93,7 +93,7 @@ export const checkAuthStatus = async (): Promise<boolean> => {
 };
 
 // Legacy function for backward compatibility - tokens now managed via HTTP-only cookies
-export const storeTokensSecurely = (accessToken: string, refreshToken: string): void => {
+export const storeTokensSecurely = (_accessToken: string, _refreshToken: string): void => {
   console.warn('Tokens are now managed via HTTP-only cookies by the backend');
   // Tokens are now handled server-side via cookies, no client-side storage needed
 };

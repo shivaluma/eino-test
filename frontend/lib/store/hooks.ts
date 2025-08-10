@@ -153,7 +153,7 @@ export function useDebouncedStore<T>(
   updateStore: (value: T) => void
 ) {
   const [debouncedValue, setDebouncedValue] = useState(value);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {

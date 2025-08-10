@@ -38,30 +38,15 @@ import { GithubIcon } from "@/components/icons/github-icon";
 import { useThemeStyle } from "@/hooks/use-theme-style";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { authApi } from "@/lib/api/auth";
-import { clearUserData } from "@/lib/mutations/auth";
-import { useAuth } from "@/lib/auth/context";
-import { useAuthSession } from "@/lib/queries/auth";
+
+import { useAppStore } from "@/lib/store/store-provider";
 
 export function AppSidebarUser() {
   // const appStoreMutate = appStore((state) => state.mutate);
   const t = useTranslations("Layout");
-  const router = useRouter();
-  const { user, logout: contextLogout } = useAuth();
-  
-  // Continuous session checking with automatic token refresh
-  useAuthSession();
-
-  const logout = async () => {
-    try {
-      // Use the context logout - it handles the API call AND redirect
-      await contextLogout();
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Context logout already handles fallback
-      toast.error('Logout failed');
-    }
-  };;
+  const _router = useRouter();
+  const user = useAppStore((state) => state.user);
+  const logout = useAppStore((state) => state.logout);
 
   return (
     <SidebarMenu>

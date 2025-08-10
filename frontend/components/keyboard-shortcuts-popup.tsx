@@ -13,12 +13,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTranslations } from "next-intl";
-import { useUIStore } from "@/lib/store";
+import { useAppStore } from "@/lib/store/store-provider";
 import { useEffect } from "react";
 
 export function KeyboardShortcutsPopup() {
-  const keyboardShortcutsOpen = useUIStore((state) => state.keyboardShortcutsOpen);
-  const toggleKeyboardShortcuts = useUIStore((state) => state.toggleKeyboardShortcuts);
+  const keyboardShortcutsOpen = useAppStore((state) => state.keyboardShortcutsOpen);
+  const toggleKeyboardShortcuts = useAppStore((state) => state.toggleKeyboardShortcuts);
   const t = useTranslations("KeyboardShortcuts");
 
   useEffect(() => {
