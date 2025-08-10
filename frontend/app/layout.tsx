@@ -5,7 +5,6 @@ import {
   ThemeProvider,
   ThemeStyleProvider,
 } from "@/components/layouts/theme-provider";
-import { QueryProvider } from "@/components/layouts/query-provider";
 
 import { Toaster } from "@/components/ui/sonner";
 import { NextIntlClientProvider } from "next-intl";
@@ -47,14 +46,12 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <ThemeStyleProvider>
-            <QueryProvider>
-              <NextIntlClientProvider>
-                <div id="root">
-                  {children}
-                  <Toaster richColors />
-                </div>
-              </NextIntlClientProvider>
-            </QueryProvider>
+            <NextIntlClientProvider>
+              <div id="root">
+                {children}
+                <Toaster richColors />
+              </div>
+            </NextIntlClientProvider>
           </ThemeStyleProvider>
         </ThemeProvider>
       </body>

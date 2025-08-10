@@ -1,6 +1,6 @@
 import { Think } from "@/components/ui/think";
 import { getTranslations } from "next-intl/server";
-import { FlipWords } from "@/components/ui/flip-word";
+import { FlipWords } from "@/components/ui/flip-words";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 
 export default async function AuthLayout({

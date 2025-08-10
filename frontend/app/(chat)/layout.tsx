@@ -7,7 +7,8 @@ import { auth } from "@/lib/auth/server";
 import { COOKIE_KEY_SIDEBAR_STATE } from "@/lib/const";
 import { StoreProvider } from "@/lib/store/store-provider";
 
-// import { AppPopupProvider } from "@/components/layouts/app-popup-provider";
+import { AppPopupProvider } from "@/components/layouts/app-popup-provider";
+import { QueryProvider } from "@/components/layouts/query-provider";
 
 export const experimental_ppr = true;
 
@@ -23,14 +24,16 @@ export default async function ChatLayout({
   const isCollapsed = sidebarCookie === undefined ? false : sidebarCookie !== "true";
   return (
     <StoreProvider initialSession={session}>
+      <QueryProvider>
       <SidebarProvider defaultOpen={!isCollapsed}>
-        {/* <AppPopupProvider /> */}
+        <AppPopupProvider />
         <AppSidebar />
         <main className="relative bg-background w-full flex flex-col h-screen">
           <AppHeader />
-          <div className="flex-1 overflow-y-auto">{children}</div>
-        </main>
-      </SidebarProvider>
+            <div className="flex-1 overflow-y-auto">{children}</div>
+          </main>
+        </SidebarProvider>
+      </QueryProvider>
     </StoreProvider>
   );
 }

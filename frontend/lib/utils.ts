@@ -65,3 +65,37 @@ export function parseEnvBoolean(value: string | boolean | undefined): boolean {
 export function capitalizeFirstLetter(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+export function generateUUID(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export const createDebounce = () => {
+  let timeout: ReturnType<typeof setTimeout>;
+
+  const debounce = (func: (...args: any[]) => any, waitFor = 200) => {
+    clearTimeout(timeout!);
+    timeout = setTimeout(() => func(), waitFor);
+    return timeout;
+  };
+
+  debounce.clear = () => {
+    clearTimeout(timeout!);
+  };
+  return debounce;
+};
+
+export const createThrottle = () => {
+  let lastCall = 0;
+  return (func: (...args: any[]) => any, waitFor = 200) => {
+    const now = Date.now();
+    if (now - lastCall >= waitFor) {
+      lastCall = now;
+      func();
+    }
+  };
+};
