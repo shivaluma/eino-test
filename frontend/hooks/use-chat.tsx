@@ -130,6 +130,7 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         },
         body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal,
+        credentials: 'include',
       });
 
       if (!response.ok) {

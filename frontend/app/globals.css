@@ -1518,4 +1518,37 @@
   .transition-colors-300 {
     @apply transition-colors duration-300;
   }
+
+  /* Custom scrollbar styles for prompt input */
+  .vertical-scroll-fade-mask {
+    mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent);
+  }
+
+  .vertical-scroll-fade-mask::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .vertical-scroll-fade-mask::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .vertical-scroll-fade-mask::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.4);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+
+  .vertical-scroll-fade-mask::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.6);
+  }
+
+  /* Firefox scrollbar support */
+  @supports (scrollbar-width: thin) {
+    .vertical-scroll-fade-mask {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+    }
+  }
 }

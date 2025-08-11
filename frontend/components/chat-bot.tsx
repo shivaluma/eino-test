@@ -10,12 +10,8 @@ import {
   useState,
 } from "react";
 import clsx from "clsx";
-import { cn, createDebounce, generateUUID } from "lib/utils";
-
+import { cn, generateUUID } from "lib/utils";
 import { useShallow } from "zustand/shallow";
-
-import { safe } from "ts-safe";
-
 import { Button } from "@/components/ui/button";
 import { ArrowDown, Loader } from "lucide-react";
 import {
@@ -30,6 +26,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useChat } from "@/hooks/use-chat";
 import { ChatGreeting } from "./chat-greeting";
+import PromptInput from "./prompt-input";
+import { appStore } from "@/app/store";
+import { createDebounce } from "@/lib/utils";
 
 type ChatBotProps = {
   threadId: string;
@@ -63,11 +62,9 @@ export function ChatBot({
     setInput,
     sendMessage,
     isLoading,
-    error,
     stop,
-    reload,
   } = useChat({
-    api: "/api/messages",
+    api: process.env.NEXT_PUBLIC_API_URL + "/api/v1/messages",
     id: threadId,
     initialMessages: initialMessages,
     onChunk: (chunk) => {
@@ -78,23 +75,16 @@ export function ChatBot({
     },
     onError: (error) => {
       console.error("Chat error:", error);
+      toast.error(error.message || "An error occurred");
     },
-    prepareRequestBody: ({ message, conversationId }) => ({
+    prepareRequestBody: ({ message }) => ({
       message,
-      conversation_id: conversationId,
+      conversation_id: threadId,
       stream: true,
       model: selectedModel || "gpt-4",
       metadata: { timestamp: Date.now() },
     }),
   });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim() && !isLoading) {
-      await sendMessage(input);
-      setInput("");
-    }
-  };
 
   const scrollToBottom = useCallback(() => {
     containerRef.current?.scrollTo({
@@ -104,11 +94,12 @@ export function ChatBot({
   }, []);
 
   const [showParticles, setShowParticles] = useState(true);
+  const [_thinking, setThinking] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   const handleFocus = useCallback(() => {
-    setShowParticles(false);
+    // setShowParticles(false);
     debounce(() => setShowParticles(true), 30000);
   }, []);
 
@@ -124,7 +115,7 @@ export function ChatBot({
   }, [handleFocus]);
 
   const particle = useMemo(() => {
-    if (!showParticles) return;
+    if (!showParticles) return null;
     return (
       <>
         <div className="absolute top-0 left-0 w-full h-full z-10 fade-in animate-in duration-5000">
@@ -151,6 +142,14 @@ export function ChatBot({
     return messages.length === 0;
   }, [messages]);
 
+  const _handleThinkingChange = useCallback((newThinking: boolean) => {
+    setThinking(newThinking);
+  }, []);
+
+  const _append = useCallback(async (message: any) => {
+    await sendMessage(message.parts?.[0]?.text || message.content || "");
+  }, [sendMessage]);
+
   return (
     <>
       {particle}
@@ -172,12 +171,51 @@ export function ChatBot({
             <div
               ref={containerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto"
+              className="flex-1 overflow-y-auto py-6"
             >
-              <div className="flex flex-col gap-4">
-                {messages.map((message, index) => (
-                  <div key={index}>{message.content}</div>
-                ))}
+              <div className="max-w-3xl mx-auto px-4">
+                <div className="flex flex-col gap-4">
+                  {messages.map((message, index) => (
+                    <div
+                      key={message.id || index}
+                      className={cn(
+                        "flex",
+                        message.role === "user" ? "justify-end" : "justify-start"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-lg px-4 py-2",
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        )}
+                      >
+                        <div className="text-xs font-medium mb-1 opacity-70">
+                          {message.role === "user" ? "You" : "Assistant"}
+                        </div>
+                        <div className="whitespace-pre-wrap break-words">
+                          {message.content}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {isLoading && messages[messages.length - 1]?.role === "user" && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] rounded-lg px-4 py-2 bg-muted">
+                        <div className="text-xs font-medium mb-1 opacity-70">
+                          Assistant
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-current rounded-full animate-bounce" />
+                          <div className="w-2 h-2 bg-current rounded-full animate-bounce delay-100" />
+                          <div className="w-2 h-2 bg-current rounded-full animate-bounce delay-200" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </>
@@ -197,17 +235,19 @@ export function ChatBot({
             />
           </div>
 
-          {/* <PromptInput
+          <PromptInput
+            placeholder="Ask anything"
             input={input}
-            threadId={threadId}
-            append={append}
-            thinking={thinking}
             setInput={setInput}
-            onThinkingChange={handleThinkingChange}
-            isLoading={isLoading || isPendingToolCall}
+            onSubmit={async () => {
+              if (input.trim()) {
+                await sendMessage(input.trim());
+              }
+            }}
             onStop={stop}
-            onFocus={isFirstTime ? undefined : handleFocus}
-          /> */}
+            isLoading={isLoading}
+            onFocus={handleFocus}
+          />
           {slots?.inputBottomSlot}
         </div>
       </div>

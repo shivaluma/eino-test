@@ -28,6 +28,16 @@ func (r *ConversationRepository) Create(ctx context.Context, conversation *model
 		Scan(&conversation.ID, &conversation.CreatedAt, &conversation.UpdatedAt)
 }
 
+func (r *ConversationRepository) CreateWithID(ctx context.Context, conversation *models.Conversation) error {
+	query := `
+		INSERT INTO conversations (id, user_id, title)
+		VALUES ($1, $2, $3)
+		RETURNING created_at, updated_at`
+
+	return r.db.Pool.QueryRow(ctx, query, conversation.ID, conversation.UserID, conversation.Title).
+		Scan(&conversation.CreatedAt, &conversation.UpdatedAt)
+}
+
 func (r *ConversationRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.Conversation, error) {
 	query := `
 		SELECT id, user_id, title, created_at, updated_at

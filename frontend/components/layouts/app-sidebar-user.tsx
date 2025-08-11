@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 // import { appStore } from "@/app/store";
-import { BASE_THEMES, COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "lib/const";
+import { BASE_THEMES, COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "@/lib/const";
 import { capitalizeFirstLetter, cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { getLocaleAction } from "@/i18n/get-locale";

@@ -94,39 +94,58 @@ func (h *ConversationHandler) SendMessage(c echo.Context) error {
 
 	// Check if conversation exists or create new one
 	if req.ConversationID != nil {
-		// Existing conversation
+		// Try to find existing conversation
 		conversation, err = h.convRepo.GetByID(ctx, *req.ConversationID)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"error": "Failed to fetch conversation",
 			})
 		}
-		if conversation == nil {
-			return c.JSON(http.StatusNotFound, map[string]string{
-				"error": "Conversation not found",
-			})
-		}
-		if conversation.UserID != userClaims.UserID {
-			return c.JSON(http.StatusForbidden, map[string]string{
-				"error": "Access denied",
-			})
-		}
+		
+		if conversation != nil {
+			// Existing conversation found - verify ownership
+			if conversation.UserID != userClaims.UserID {
+				return c.JSON(http.StatusForbidden, map[string]string{
+					"error": "Access denied",
+				})
+			}
 
-		// Load chat history
-		messages, err := h.convRepo.GetMessages(ctx, conversation.ID, 50, 0)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "Failed to fetch messages",
-			})
-		}
+			// Load chat history
+			messages, err := h.convRepo.GetMessages(ctx, conversation.ID, 50, 0)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"error": "Failed to fetch messages",
+				})
+			}
 
-		// Convert to schema messages for chat history
-		for _, msg := range messages {
-			switch msg.SenderType {
-			case models.SenderTypeUser:
-				chatHistory = append(chatHistory, schema.UserMessage(msg.Content))
-			case models.SenderTypeAgent:
-				chatHistory = append(chatHistory, schema.AssistantMessage(msg.Content, nil))
+			// Convert to schema messages for chat history
+			for _, msg := range messages {
+				switch msg.SenderType {
+				case models.SenderTypeUser:
+					chatHistory = append(chatHistory, schema.UserMessage(msg.Content))
+				case models.SenderTypeAgent:
+					chatHistory = append(chatHistory, schema.AssistantMessage(msg.Content, nil))
+				}
+			}
+		} else {
+			// Conversation not found - create new one with the provided ID
+			title, err := h.aiService.GenerateTitle(ctx, req.Message)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"error": "Failed to generate title",
+				})
+			}
+
+			conversation = &models.Conversation{
+				ID:     *req.ConversationID, // Use the provided ID
+				UserID: userClaims.UserID,
+				Title:  &title,
+			}
+
+			if err := h.convRepo.CreateWithID(ctx, conversation); err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"error": "Failed to create conversation with provided ID",
+				})
 			}
 		}
 	} else {

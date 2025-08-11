@@ -4,7 +4,7 @@ import {
   getShortcutKeyList,
   isShortcutEvent,
   Shortcuts,
-} from "lib/keyboard-shortcuts";
+} from "@/lib/keyboard-shortcuts";
 
 import {
   Dialog,
