@@ -24,16 +24,14 @@ export default async function ChatLayout({
   const isCollapsed = sidebarCookie === undefined ? false : sidebarCookie !== "true";
   return (
     <StoreProvider initialSession={session}>
-      <QueryProvider>
       <SidebarProvider defaultOpen={!isCollapsed}>
         <AppPopupProvider />
         <AppSidebar />
         <main className="relative bg-background w-full flex flex-col h-screen">
           <AppHeader />
-            <div className="flex-1 overflow-y-auto">{children}</div>
-          </main>
-        </SidebarProvider>
-      </QueryProvider>
+          <div className="flex-1 overflow-y-auto">{children}</div>
+        </main>
+      </SidebarProvider>
     </StoreProvider>
   );
 }
