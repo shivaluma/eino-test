@@ -26,7 +26,7 @@ func NewService(model model.ToolCallingChatModel, config *Config) Service {
 
 func (s *service) Generate(ctx context.Context, req *ChatRequest) (*ChatResponse, error) {
 	// Build messages with template
-	messages, err := s.templates.BuildChatMessages(req.Message, req.History)
+	messages, err := s.templates.BuildFoodRecommendMessages(req.Message, req.History)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build messages: %w", err)
 	}
@@ -45,7 +45,7 @@ func (s *service) Generate(ctx context.Context, req *ChatRequest) (*ChatResponse
 
 func (s *service) Stream(ctx context.Context, req *ChatRequest, callback StreamCallback) (*ChatResponse, error) {
 	// Build messages with template
-	messages, err := s.templates.BuildChatMessages(req.Message, req.History)
+	messages, err := s.templates.BuildFoodRecommendMessages(req.Message, req.History)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build messages: %w", err)
 	}
