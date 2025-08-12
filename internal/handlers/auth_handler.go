@@ -297,8 +297,22 @@ func (h *AuthHandler) Me(c echo.Context) error {
 	})
 }
 
-// Logout handles user logout by clearing authentication cookies
+// Logout handles user logout by clearing authentication cookies and invalidating refresh token
 func (h *AuthHandler) Logout(c echo.Context) error {
+	// Get refresh token from cookie before clearing it
+	refreshCookie, err := c.Cookie("refresh_token")
+	if err == nil && refreshCookie.Value != "" {
+		// Invalidate the refresh token in the database
+		refreshTokenRecord, err := h.userRepo.GetRefreshToken(c.Request().Context(), refreshCookie.Value)
+		if err == nil && refreshTokenRecord != nil {
+			// Invalidate the specific refresh token
+			if err := h.userRepo.InvalidateRefreshToken(c.Request().Context(), refreshTokenRecord.ID); err != nil {
+				// Log error but don't fail the logout process
+				c.Logger().Error("Failed to invalidate refresh token during logout: ", err)
+			}
+		}
+	}
+
 	// Clear access token cookie
 	c.SetCookie(&http.Cookie{
 		Name:     "access_token",
@@ -320,10 +334,6 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1, // Delete the cookie
 	})
-
-	// Optionally, you could also invalidate the refresh token in the database
-	// This would require getting the user from the token before clearing cookies
-	// and then calling h.userRepo.InvalidateRefreshToken(ctx, userID)
 
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "Successfully logged out",

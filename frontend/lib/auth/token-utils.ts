@@ -83,9 +83,11 @@ const decodeBase64URL = (str: string): string | null => {
 // Helper function to check authentication status via API
 export const checkAuthStatus = async (): Promise<boolean> => {
   try {
-    const response = await fetch('/api/auth/validate');
-    const data = await response.json();
-    return data.authenticated === true;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
+      credentials: 'include' // Include cookies for authentication
+    });
+    return response.ok; // 200 means authenticated, 401 means not authenticated
   } catch (error) {
     console.error('Auth status check failed:', error);
     return false;
@@ -147,19 +149,8 @@ export const isAuthenticated = (): boolean => {
 /**
  * Get access token if valid, otherwise return null
  */
-// Helper function to logout by clearing cookies
-export const logout = async (): Promise<void> => {
-  try {
-    // Call backend logout endpoint to clear HTTP-only cookies
-    await fetch('/api/auth/logout', { method: 'POST' });
-    // Redirect to sign-in page
-    window.location.href = '/sign-in';
-  } catch (error) {
-    console.error('Logout failed:', error);
-    // Force redirect even if API call fails
-    window.location.href = '/sign-in';
-  }
-};
+// Note: Logout function moved to authApi in lib/api/auth.ts
+// Use authApi.logout() instead of this deprecated function
 
 // Legacy functions - tokens now managed via HTTP-only cookies
 export const getValidAccessToken = (): string | null => {

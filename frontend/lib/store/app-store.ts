@@ -160,10 +160,13 @@ const createAppStore = (initState: Partial<AppState> = {}) => {
           });
 
           try {
-            await fetch("/api/auth/logout", {
-              method: "POST",
-              credentials: "include",
-            });
+            // Use the authApi to call Go backend logout endpoint
+            const { authApi } = await import('../api/auth');
+            const result = await authApi.logout();
+            
+            if (result.error) {
+              console.error("Logout API error:", result.error);
+            }
           } catch (error) {
             console.error("Logout error:", error);
           } finally {
